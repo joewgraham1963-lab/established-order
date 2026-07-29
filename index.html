@@ -141,10 +141,12 @@ font-family: "League Spartan", sans-serif;
   Established Order
   <span class="title-extra">(Jizflak Pt 1)</span>
   </h1>
-  <p>
-    <button onclick="document.getElementById('hidden-note').style.display='block'">
+  <button onclick="
+  const note = document.getElementById('hidden-note');
+  note.style.display = note.style.display === 'none' ? 'block' : 'none';
+">
   What is HTML?
-</button>
+  </button>
 
 <p id="hidden-note" style="display:none;">
   HTML gives a webpage its structure. It tells the browser what is a heading,
