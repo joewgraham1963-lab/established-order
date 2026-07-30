@@ -1,1 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
 
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>JavaScript Maths Laboratory</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+
+      background:
+        radial-gradient(circle at top, #a8a8a2, #5f5f5b);
+
+      color: #222222;
+
+      font-family:
+        Futura,
+        "Century Gothic",
+        Arial,
+        sans-serif;
+
+      display: flex;
+      justify-content: center;
+    }
+
+    main {
+      width: 100%;
+      max-width: 850px;
+      padding: 28px;
+
+      background: #f0f0ea;
+      border-radius: 28px;
+
+      box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.28);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      padding: 22px 18px;
+
+      background: #222222;
+      color: #ffffff;
+
+      border-radius: 18px;
+
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 0 0 30px;
+
+      text-align: center;
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    p,
+    li {
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    .laboratory {
+      margin: 28px 0;
+      padding: 24px;
+
+      background: #deded8;
+
+      border-left: 8px solid #222222;
+      border-radius: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+
+      border: 2px solid #555555;
+      border-radius: 10px;
+
+      background: #ffffff;
+
+      font-family: monospace;
+      font-size: 21px;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+
+      margin-top: 14px;
+    }
+
+    button {
+      flex: 1;
+      min-width: 120px;
+
+      padding: 12px 14px;
+
+      border: none;
+      border-radius: 11px;
+
+      background: #333333;
+      color: #ffffff;
+
+      font-family: inherit;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #555555;
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 12px;
+
+      margin-top: 22px;
+    }
+
+    .result-card {
+      min-height: 105px;
+      padding: 16px;
+
+      background: #ffffff;
+      border-radius: 13px;
+
+      overflow-wrap: anywhere;
+    }
+
+    .result-name {
+      display: block;
+      margin-bottom: 8px;
+
+      font-size: 15px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .result-value {
+      font-family: monospace;
+      font-size: 21px;
+    }
+
+    .wide-card {
+      grid-column: 1 / -1;
+    }
+
+    .explanation {
+      margin-top: 24px;
+      padding: 18px;
+
+      background: #ffffff;
+      border-radius: 13px;
+    }
+
+    code {
+      padding: 3px 6px;
+
+      background: #d4d4cf;
+      border-radius: 5px;
+
+      font-size: 17px;
+    }
+
+    .angle-display {
+      position: relative;
+
+      width: 250px;
+      height: 250px;
+
+      margin: 25px auto;
+
+      border: 4px solid #222222;
+      border-radius: 50%;
+
+      background: #848484;
+    }
+
+    .horizontal-line,
+    .vertical-line {
+      position: absolute;
+
+      background: rgba(255, 255, 255, 0.65);
+    }
+
+    .horizontal-line {
+      left: 0;
+      top: 50%;
+
+      width: 100%;
+      height: 2px;
+    }
+
+    .vertical-line {
+      left: 50%;
+      top: 0;
+
+      width: 2px;
+      height: 100%;
+    }
+
+    .angle-arm {
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      width: 43%;
+      height: 5px;
+
+      background: #ffff00;
+
+      transform-origin: left center;
+      transform: rotate(0deg);
+
+      border-radius: 4px;
+    }
+
+    .centre-dot {
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      width: 14px;
+      height: 14px;
+
+      background: #ffffff;
+      border: 2px solid #222222;
+      border-radius: 50%;
+
+      transform: translate(-50%, -50%);
+    }
+
+    .direction-label {
+      position: absolute;
+
+      font-weight: bold;
+    }
+
+    .north {
+      top: 7px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .east {
+      right: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .south {
+      bottom: 7px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .west {
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .error-message {
+      margin-top: 14px;
+
+      color: #990000;
+      font-weight: bold;
+    }
+
+    .return-link {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 18px;
+
+      background: #333333;
+      color: #ffffff;
+
+      text-decoration: none;
+      border-radius: 14px;
+    }
+
+    .return-link:hover {
+      background: #555555;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+
+      main {
+        padding: 17px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .results {
+        grid-template-columns: 1fr;
+      }
+
+      .wide-card {
+        grid-column: auto;
+      }
+
+      .angle-display {
+        width: 220px;
+        height: 220px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main>
+
+    <h1>JavaScript Maths Laboratory</h1>
+
+    <p class="subtitle">
+      Put in a number. JavaScript will subject it
+      to a series of mathematical indignities.
+    </p>
+
+    <section class="laboratory">
+
+      <h2>Mess about with a number</h2>
+
+      <label for="number-input">
+        Enter any number:
+      </label>
+
+      <input
+        id="number-input"
+        type="number"
+        value="9"
+        step="any"
+        inputmode="decimal"
+      >
+
+      <div class="button-row">
+
+        <button id="random-number-button">
+          Random number
+        </button>
+
+        <button id="negative-button">
+          Change its sign
+        </button>
+
+        <button id="clear-number-button">
+          Clear
+        </button>
+
+      </div>
+
+      <p
+        id="number-error"
+        class="error-message"
+        aria-live="polite">
+      </p>
+
+      <div class="results">
+
+        <div class="result-card">
+          <span class="result-name">
+            Squared
+          </span>
+
+          <span
+            id="square-result"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Cubed
+          </span>
+
+          <span
+            id="cube-result"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Square root
+          </span>
+
+          <span
+            id="root-result"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Multiplied by π
+          </span>
+
+          <span
+            id="pi-result"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Absolute value
+          </span>
+
+          <span
+            id="absolute-result"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Reciprocal
+          </span>
+
+          <span
+            id="reciprocal-result"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card wide-card">
+          <span class="result-name">
+            Percentage of 100
+          </span>
+
+          <span
+            id="percentage-result"
+            class="result-value">
+          </span>
+        </div>
+
+      </div>
+
+      <div class="explanation">
+
+        <strong>What JavaScript is doing:</strong>
+
+        <p>
+          It reads the number from the HTML input box,
+          performs calculations, then writes the answers
+          into the result cards.
+        </p>
+
+        <p>
+          For example, squaring uses
+          <code>number * number</code>,
+          while the square root uses
+          <code>Math.sqrt(number)</code>.
+        </p>
+
+      </div>
+
+    </section>
+
+    <section class="laboratory">
+
+      <h2>Angles, sine and cosine</h2>
+
+      <p>
+        Enter an angle in degrees. JavaScript converts it
+        into radians before calculating its sine and cosine.
+      </p>
+
+      <label for="angle-input">
+        Angle in degrees:
+      </label>
+
+      <input
+        id="angle-input"
+        type="number"
+        value="60"
+        step="any"
+        inputmode="decimal"
+      >
+
+      <div class="button-row">
+
+        <button
+          class="angle-button"
+          data-angle="0">
+          0°
+        </button>
+
+        <button
+          class="angle-button"
+          data-angle="30">
+          30°
+        </button>
+
+        <button
+          class="angle-button"
+          data-angle="45">
+          45°
+        </button>
+
+        <button
+          class="angle-button"
+          data-angle="60">
+          60°
+        </button>
+
+        <button
+          class="angle-button"
+          data-angle="90">
+          90°
+        </button>
+
+        <button
+          class="angle-button"
+          data-angle="180">
+          180°
+        </button>
+
+        <button
+          class="angle-button"
+          data-angle="270">
+          270°
+        </button>
+
+        <button
+          class="angle-button"
+          data-angle="360">
+          360°
+        </button>
+
+      </div>
+
+      <div
+        class="angle-display"
+        aria-label="Angle display">
+
+        <span class="direction-label north">
+          270°
+        </span>
+
+        <span class="direction-label east">
+          0°
+        </span>
+
+        <span class="direction-label south">
+          90°
+        </span>
+
+        <span class="direction-label west">
+          180°
+        </span>
+
+        <div class="horizontal-line"></div>
+        <div class="vertical-line"></div>
+
+        <div
+          id="angle-arm"
+          class="angle-arm">
+        </div>
+
+        <div class="centre-dot"></div>
+
+      </div>
+
+      <p
+        id="angle-error"
+        class="error-message"
+        aria-live="polite">
+      </p>
+
+      <div class="results">
+
+        <div class="result-card">
+          <span class="result-name">
+            Normalised angle
+          </span>
+
+          <span
+            id="normal-angle-result"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Radians
+          </span>
+
+          <span
+            id="radians-result"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Sine
+          </span>
+
+          <span
+            id="sine-result"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Cosine
+          </span>
+
+          <span
+            id="cosine-result"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card wide-card">
+          <span class="result-name">
+            Tangent
+          </span>
+
+          <span
+            id="tangent-result"
+            class="result-value">
+          </span>
+        </div>
+
+      </div>
+
+      <div class="explanation">
+
+        <strong>The conversion:</strong>
+
+        <p>
+          Degrees are converted into radians using:
+        </p>
+
+        <p>
+          <code>
+            radians = degrees × π ÷ 180
+          </code>
+        </p>
+
+        <p>
+          JavaScript then uses
+          <code>Math.sin()</code>,
+          <code>Math.cos()</code>
+          and <code>Math.tan()</code>.
+        </p>
+
+      </div>
+
+    </section>
+
+    <section class="laboratory">
+
+      <h2>A small collection of useful constants</h2>
+
+      <div class="results">
+
+        <div class="result-card">
+          <span class="result-name">
+            Pi, π
+          </span>
+
+          <span
+            id="pi-constant"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Euler’s number, e
+          </span>
+
+          <span
+            id="e-constant"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Square root of 2
+          </span>
+
+          <span
+            id="root-two-constant"
+            class="result-value">
+          </span>
+        </div>
+
+        <div class="result-card">
+          <span class="result-name">
+            Golden ratio, φ
+          </span>
+
+          <span
+            id="golden-ratio"
+            class="result-value">
+          </span>
+        </div>
+
+      </div>
+
+    </section>
+
+    <a
+      class="return-link"
+      href="index.html">
+      Return to Established Order
+    </a>
+
+  </main>
+
+  <script>
+    const numberInput =
+      document.getElementById("number-input");
+
+    const squareResult =
+      document.getElementById("square-result");
+
+    const cubeResult =
+      document.getElementById("cube-result");
+
+    const rootResult =
+      document.getElementById("root-result");
+
+    const piResult =
+      document.getElementById("pi-result");
+
+    const absoluteResult =
+      document.getElementById("absolute-result");
+
+    const reciprocalResult =
+      document.getElementById("reciprocal-result");
+
+    const percentageResult =
+      document.getElementById("percentage-result");
+
+    const numberError =
+      document.getElementById("number-error");
+
+    const angleInput =
+      document.getElementById("angle-input");
+
+    const angleArm =
+      document.getElementById("angle-arm");
+
+    const normalAngleResult =
+      document.getElementById("normal-angle-result");
+
+    const radiansResult =
+      document.getElementById("radians-result");
+
+    const sineResult =
+      document.getElementById("sine-result");
+
+    const cosineResult =
+      document.getElementById("cosine-result");
+
+    const tangentResult =
+      document.getElementById("tangent-result");
+
+    const angleError =
+      document.getElementById("angle-error");
+
+    function formatNumber(number) {
+      if (!Number.isFinite(number)) {
+        return "Undefined";
+      }
+
+      if (Math.abs(number) < 0.000000000001) {
+        return "0";
+      }
+
+      if (
+        Math.abs(number) >= 1000000000 ||
+        (
+          Math.abs(number) > 0 &&
+          Math.abs(number) < 0.000001
+        )
+      ) {
+        return number.toExponential(8);
+      }
+
+      return Number(number.toFixed(10)).toString();
+    }
+
+    function updateNumberResults() {
+      const number =
+        Number(numberInput.value);
+
+      if (
+        numberInput.value.trim() === "" ||
+        !Number.isFinite(number)
+      ) {
+        numberError.textContent =
+          "Enter a valid number.";
+
+        squareResult.textContent = "—";
+        cubeResult.textContent = "—";
+        rootResult.textContent = "—";
+        piResult.textContent = "—";
+        absoluteResult.textContent = "—";
+        reciprocalResult.textContent = "—";
+        percentageResult.textContent = "—";
+
+        return;
+      }
+
+      numberError.textContent = "";
+
+      squareResult.textContent =
+        formatNumber(number ** 2);
+
+      cubeResult.textContent =
+        formatNumber(number ** 3);
+
+      if (number < 0) {
+        rootResult.textContent =
+          "No real-number answer";
+      } else {
+        rootResult.textContent =
+          formatNumber(Math.sqrt(number));
+      }
+
+      piResult.textContent =
+        formatNumber(number * Math.PI);
+
+      absoluteResult.textContent =
+        formatNumber(Math.abs(number));
+
+      if (number === 0) {
+        reciprocalResult.textContent =
+          "Undefined";
+      } else {
+        reciprocalResult.textContent =
+          formatNumber(1 / number);
+      }
+
+      percentageResult.textContent =
+        formatNumber(number) + "%";
+    }
+
+    function updateAngleResults() {
+      const degrees =
+        Number(angleInput.value);
+
+      if (
+        angleInput.value.trim() === "" ||
+        !Number.isFinite(degrees)
+      ) {
+        angleError.textContent =
+          "Enter a valid angle.";
+
+        normalAngleResult.textContent = "—";
+        radiansResult.textContent = "—";
+        sineResult.textContent = "—";
+        cosineResult.textContent = "—";
+        tangentResult.textContent = "—";
+
+        return;
+      }
+
+      angleError.textContent = "";
+
+      const normalAngle =
+        ((degrees % 360) + 360) % 360;
+
+      const radians =
+        degrees * Math.PI / 180;
+
+      const sine =
+        Math.sin(radians);
+
+      const cosine =
+        Math.cos(radians);
+
+      const tangent =
+        Math.tan(radians);
+
+      normalAngleResult.textContent =
+        formatNumber(normalAngle) + "°";
+
+      radiansResult.textContent =
+        formatNumber(radians);
+
+      sineResult.textContent =
+        formatNumber(sine);
+
+      cosineResult.textContent =
+        formatNumber(cosine);
+
+      if (Math.abs(cosine) < 0.000000000001) {
+        tangentResult.textContent =
+          "Undefined";
+      } else {
+        tangentResult.textContent =
+          formatNumber(tangent);
+      }
+
+      angleArm.style.transform =
+        "rotate(" + normalAngle + "deg)";
+    }
+
+    document
+      .getElementById("random-number-button")
+      .addEventListener("click", function () {
+        const randomNumber =
+          Math.floor(Math.random() * 201) - 100;
+
+        numberInput.value = randomNumber;
+
+        updateNumberResults();
+      });
+
+    document
+      .getElementById("negative-button")
+      .addEventListener("click", function () {
+        const number =
+          Number(numberInput.value);
+
+        if (Number.isFinite(number)) {
+          numberInput.value = -number;
+          updateNumberResults();
+        }
+      });
+
+    document
+      .getElementById("clear-number-button")
+      .addEventListener("click", function () {
+        numberInput.value = "";
+        numberInput.focus();
+        updateNumberResults();
+      });
+
+    document
+      .querySelectorAll(".angle-button")
+      .forEach(function (button) {
+        button.addEventListener(
+          "click",
+          function () {
+            angleInput.value =
+              button.dataset.angle;
+
+            updateAngleResults();
+          }
+        );
+      });
+
+    numberInput.addEventListener(
+      "input",
+      updateNumberResults
+    );
+
+    angleInput.addEventListener(
+      "input",
+      updateAngleResults
+    );
+
+    document
+      .getElementById("pi-constant")
+      .textContent =
+        Math.PI.toFixed(12);
+
+    document
+      .getElementById("e-constant")
+      .textContent =
+        Math.E.toFixed(12);
+
+    document
+      .getElementById("root-two-constant")
+      .textContent =
+        Math.SQRT2.toFixed(12);
+
+    document
+      .getElementById("golden-ratio")
+      .textContent =
+        (
+          (1 + Math.sqrt(5)) / 2
+        ).toFixed(12);
+
+    updateNumberResults();
+    updateAngleResults();
+  </script>
+
+</body>
+  </html>
