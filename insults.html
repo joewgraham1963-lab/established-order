@@ -1,1 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <style>
+    body {
+      background: #848484;
+      font-family: Futura, "Century Gothic", Arial, sans-serif;
+      text-align: center;
+      padding: 40px 20px;
+      font-size: 24px;
+    }
+
+    h2 {
+      font-size: 36px;
+    }
+
+    #insult {
+      font-size: 30px;
+      margin: 30px 0;
+    }
+
+    button {
+      font-size: 22px;
+      padding: 14px 22px;
+      border-radius: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Random Insult Generator</h2>
+
+<p id="insult">Press the button and lower your expectations.</p>
+
+<button onclick="generateInsult()">Insult me</button>
+
+<script>
+function generateInsult() {
+  const adjectives = [
+    "gormless",
+    "malfunctioning",
+    "half-baked",
+    "bewildered",
+    "second-rate",
+    "miserable",
+    "pompous",
+    "wheezing",
+    "underqualified",
+    "deeply suspicious"
+  ];
+
+  const nouns = [
+    "turnip",
+    "lampshade",
+    "parking meter",
+    "sock puppet",
+    "toilet brush",
+    "teaspoon",
+    "traffic cone",
+    "ferret",
+    "radiator",
+    "bread bin"
+  ];
+
+  const endings = [
+    "with ideas above its station.",
+    "who has mistaken confusion for intelligence.",
+    "with the strategic insight of damp cardboard.",
+    "who could lose an argument with a door.",
+    "with all the charm of a blocked drain.",
+    "who appears to have been assembled during a power cut.",
+    "with the emotional range of a wheelie bin.",
+    "who would struggle to supervise a biscuit.",
+    "with absolutely no business being this confident.",
+    "who has somehow disappointed basic geometry."
+  ];
+
+  const adjective =
+    adjectives[Math.floor(Math.random() * adjectives.length)];
+
+  const noun =
+    nouns[Math.floor(Math.random() * nouns.length)];
+
+  const ending =
+    endings[Math.floor(Math.random() * endings.length)];
+
+  document.getElementById("insult").textContent =
+    "You " + adjective + " " + noun + " " + ending;
+}
+</script>
+
+</body>
+    </html>
