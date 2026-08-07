@@ -27,6 +27,58 @@
       padding: 14px 22px;
       border-radius: 18px;
     }
+   function generateMessage() {
+  const subjects = [
+    "The kettle",
+    "A suspicious triangle",
+    "Your left sock",
+    "The Moon",
+    "A retired traffic cone",
+    "The Department of Unnecessary Angles",
+    "An unemployed seagull",
+    "The last remaining biscuit",
+    "A small but determined radiator",
+    "Tuesday"
+  ];
+
+  const actions = [
+    "has been promoted beyond",
+    "is quietly investigating",
+    "has declared war on",
+    "is legally responsible for",
+    "has become emotionally attached to",
+    "is hiding underneath",
+    "has accidentally invented",
+    "has been banned from",
+    "is refusing to acknowledge",
+    "has filed a complaint against"
+  ];
+
+  const objects = [
+    "its own competence.",
+    "the concept of north.",
+    "a ceremonial potato.",
+    "three metres of suspicious carpet.",
+    "the entire county of Denbighshire.",
+    "a badly parked teaspoon.",
+    "the number seven.",
+    "an unauthorised cloud.",
+    "your browsing history.",
+    "a minor celestial incident."
+  ];
+
+  const subject =
+    subjects[Math.floor(Math.random() * subjects.length)];
+
+  const action =
+    actions[Math.floor(Math.random() * actions.length)];
+
+  const object =
+    objects[Math.floor(Math.random() * objects.length)];
+
+  document.getElementById("message").textContent =
+    subject + " " + action + " " + object;
+    } 
   </style>
 </head>
 
@@ -38,25 +90,7 @@
 <button onclick="generateMessage()">Generate nonsense</button>
 
 <script>
-function generateMessage() {
-  const messages = [
-    "The kettle has been promoted beyond its competence.",
-    "A suspicious triangle has been seen near Rhyl.",
-    "Your application to become a minor celestial body has been declined.",
-    "The Moon denies all knowledge of the incident.",
-    "Please remain calm while the wallpaper recalculates.",
-    "A committee has been formed to investigate the spoon.",
-    "Tuesday has been temporarily suspended.",
-    "The Department of Unnecessary Angles will contact you shortly.",
-    "Your trousers are not authorised for orbital use.",
-    "The clock knows more than it is telling you."
-  ];
 
-  const randomNumber = Math.floor(Math.random() * messages.length);
-
-  document.getElementById("message").textContent =
-    messages[randomNumber];
-}
   </script>
   </body>
 </html>
