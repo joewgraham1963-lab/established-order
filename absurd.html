@@ -1,1 +1,27 @@
-ab
+<h2>Random Absurd Message Generator</h2>
+
+<p id="message">Press the button. Regret nothing.</p>
+
+<button onclick="generateMessage()">Generate nonsense</button>
+
+<script>
+function generateMessage() {
+  const messages = [
+    "The kettle has been promoted beyond its competence.",
+    "A suspicious triangle has been seen near Rhyl.",
+    "Your application to become a minor celestial body has been declined.",
+    "The Moon denies all knowledge of the incident.",
+    "Please remain calm while the wallpaper recalculates.",
+    "A committee has been formed to investigate the spoon.",
+    "Tuesday has been temporarily suspended.",
+    "The Department of Unnecessary Angles will contact you shortly.",
+    "Your trousers are not authorised for orbital use.",
+    "The clock knows more than it is telling you."
+  ];
+
+  const randomNumber = Math.floor(Math.random() * messages.length);
+
+  document.getElementById("message").textContent =
+    messages[randomNumber];
+}
+  </script>
