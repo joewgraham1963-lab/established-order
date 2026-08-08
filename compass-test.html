@@ -1,1 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>Compass Test</title>
+
+  <style>
+    body {
+      background: #848484;
+      font-family: Futura, "Century Gothic", Arial, sans-serif;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 32px;
+    }
+
+    #heading {
+      font-size: 48px;
+      margin: 30px 0;
+    }
+
+    button {
+      font-size: 22px;
+      padding: 14px 22px;
+      border-radius: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Compass Test</h1>
+
+  <p>Turn the phone and see whether the number changes.</p>
+
+  <div id="heading">Waiting for sensor...</div>
+
+  <button onclick="startCompass()">Start compass</button>
+
+  <script>
+    function startCompass() {
+
+      if (
+        typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function"
+      ) {
+        DeviceOrientationEvent.requestPermission()
+          .then(function(permissionState) {
+            if (permissionState === "granted") {
+              window.addEventListener(
+                "deviceorientation",
+                handleOrientation
+              );
+            }
+          });
+
+      } else {
+        window.addEventListener(
+          "deviceorientationabsolute",
+          handleOrientation,
+          true
+        );
+
+        window.addEventListener(
+          "deviceorientation",
+          handleOrientation,
+          true
+        );
+      }
+    }
+
+    function handleOrientation(event) {
+
+      let heading;
+
+      if (event.webkitCompassHeading) {
+        heading = event.webkitCompassHeading;
+      } else if (event.alpha !== null) {
+        heading = 360 - event.alpha;
+      }
+
+      if (heading !== undefined) {
+        heading = (heading + 360) % 360;
+
+        document.getElementById("heading").textContent =
+          heading.toFixed(1) + "°";
+      } else {
+        document.getElementById("heading").textContent =
+          "No compass heading available";
+      }
+    }
+  </script>
+
+</body>
+  </html>
