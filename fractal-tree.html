@@ -35,7 +35,7 @@
 const canvas = document.getElementById("tree");
 const ctx = canvas.getContext("2d");
 
-ctx.lineWidth = 2;
+ctx.lineWidth = 4;
 ctx.lineCap = "round";
 
 let branches = [
@@ -89,7 +89,7 @@ function drawGeneration() {
   branches = newBranches;
   depth++;
 
-  setTimeout(drawGeneration, 5000);
+  setTimeout(drawGeneration, 1000);
 }
 
 drawGeneration();
