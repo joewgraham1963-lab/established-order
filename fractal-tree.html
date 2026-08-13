@@ -1,1 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fractal Tree</title>
 
+  <style>
+    body {
+      margin: 0;
+      background: #848484;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    canvas {
+      background: #848484;
+      display: block;
+      margin: 20px auto;
+      max-width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Fractal Tree</h1>
+
+  <canvas id="tree" width="700" height="700"></canvas>
+
+  <script>
+    const canvas = document.getElementById("tree");
+    const ctx = canvas.getContext("2d");
+
+    function branch(x, y, length, angle, depth) {
+
+      if (depth === 0) return;
+
+      const endX = x + Math.cos(angle) * length;
+      const endY = y + Math.sin(angle) * length;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+
+      branch(
+        endX,
+        endY,
+        length * 0.72,
+        angle - 0.5,
+        depth - 1
+      );
+
+      branch(
+        endX,
+        endY,
+        length * 0.72,
+        angle + 0.5,
+        depth - 1
+      );
+    }
+
+    ctx.lineWidth = 2;
+
+    branch(
+      canvas.width / 2,
+      canvas.height - 20,
+      160,
+      -Math.PI / 2,
+      10
+    );
+  </script>
+
+</body>
+</html>
