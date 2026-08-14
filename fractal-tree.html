@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+1<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -89,7 +89,7 @@ const ctx = canvas.getContext("2d");
 let width;
 let height;
 
-let time = 0;
+let time =1;
 
 /*
    Resolution is deliberately reduced slightly.
@@ -169,7 +169,7 @@ function drawJulia() {
     Math.cos(time * 0.29) * 0.018;
 
 
-  const maxIterations = 70;
+  const maxIterations = 100;
 
   const scale = 3.2 / Math.min(width, height);
 
@@ -273,7 +273,7 @@ canvas.addEventListener("pointerdown", function () {
   */
 
   baseReal +=
-    (Math.random() - 0.5) * 0.04;
+    (Math.random() - 0.5) * 0.104;
 
   baseImag +=
     (Math.random() - 0.5) * 0.04;
