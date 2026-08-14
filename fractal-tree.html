@@ -1,98 +1,303 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fractal Tree</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      margin: 0;
-      background: #848484;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
+<title>Julia Set | Established Order</title>
 
-    h1 {
-      margin-top: 20px;
-    }
+<style>
+  * {
+    box-sizing: border-box;
+  }
 
-    canvas {
-      background: #ffffff;
-      display: block;
-      margin: 20px auto;
-      max-width: 100%;
-    }
-  </style>
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: Arial, sans-serif;
+  }
+
+  canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .title {
+    position: fixed;
+    top: 18px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 20px;
+    letter-spacing: 3px;
+    pointer-events: none;
+    text-shadow: 0 1px 4px black;
+  }
+
+  .instruction {
+    position: fixed;
+    bottom: 22px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: rgba(255,255,255,0.8);
+    font-size: 13px;
+    letter-spacing: 1px;
+    pointer-events: none;
+  }
+
+  .back {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    color: white;
+    text-decoration: none;
+    padding: 8px 11px;
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 8px;
+    background: rgba(0,0,0,0.35);
+  }
+</style>
 </head>
 
 <body>
 
-  <h1>Fractal Tree</h1>
+<canvas id="julia"></canvas>
 
-  <canvas id="tree" width="700" height="700"></canvas>
+<a class="back" href="index.html">← back</a>
+
+<div class="title">
+  JULIA SET
+</div>
+
+<div class="instruction">
+  TAP ANYWHERE TO DISTURB THE MATHEMATICS
+</div>
+
 <script>
-const canvas = document.getElementById("tree");
+
+const canvas = document.getElementById("julia");
 const ctx = canvas.getContext("2d");
 
-ctx.lineWidth = 2;
-ctx.lineCap = "round";
+let width;
+let height;
 
-let branches = [
-  {
-    x: canvas.width / 2,
-    y: canvas.height - 20,
-    length: 160,
-    angle: -Math.PI / 2
-  }
-];
+let time = 0;
 
-let depth = 0;
-const maxDepth = 100;
+/*
+   Resolution is deliberately reduced slightly.
+   Your phone therefore does not have to calculate
+   every pixel on the physical screen.
+*/
+const quality = 0.55;
 
-function drawGeneration() {
+function resize() {
 
-  if (depth >= maxDepth) return;
+  width = Math.floor(window.innerWidth * quality);
+  height = Math.floor(window.innerHeight * quality);
 
-  const newBranches = [];
-
-  for (const branch of branches) {
-
-    const endX =
-      branch.x + Math.cos(branch.angle) * branch.length;
-
-    const endY =
-      branch.y + Math.sin(branch.angle) * branch.length;
-
-    ctx.beginPath();
-    ctx.moveTo(branch.x, branch.y);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
-
-    const newLength = branch.length * 0.9;
-
-    newBranches.push({
-      x: endX,
-      y: endY,
-      length: newLength,
-      angle: branch.angle - 0.5
-    });
-
-    newBranches.push({
-      x: endX,
-      y: endY,
-      length: newLength,
-      angle: branch.angle + 0.5
-    });
-  }
-
-  branches = newBranches;
-  depth++;
-
-  setTimeout(drawGeneration, 1000);
+  canvas.width = width;
+  canvas.height = height;
 }
 
-drawGeneration();
+resize();
+
+window.addEventListener("resize", resize);
+
+
+/*
+   Starting Julia constant.
+
+   Altering these two numbers completely changes
+   the shape of the fractal.
+*/
+
+let baseReal = -0.745;
+let baseImag = 0.113;
+
+
+/*
+   A selection of interesting Julia-set regions.
+*/
+
+const julias = [
+
+  [-0.745, 0.113],
+
+  [-0.8, 0.156],
+
+  [-0.4, 0.6],
+
+  [0.285, 0.01],
+
+  [-0.70176, -0.3842],
+
+  [-0.835, -0.2321],
+
+  [-0.7269, 0.1889],
+
+  [-0.54, 0.54]
+
+];
+
+
+function drawJulia() {
+
+  const image = ctx.createImageData(width, height);
+  const pixels = image.data;
+
+  /*
+     Slowly move the constant.
+
+     This makes the Julia set breathe and mutate
+     rather than remaining a static picture.
+  */
+
+  const cReal =
+    baseReal +
+    Math.sin(time * 0.37) * 0.018;
+
+  const cImag =
+    baseImag +
+    Math.cos(time * 0.29) * 0.018;
+
+
+  const maxIterations = 70;
+
+  const scale = 3.2 / Math.min(width, height);
+
+  let p = 0;
+
+  for (let py = 0; py < height; py++) {
+
+    for (let px = 0; px < width; px++) {
+
+      let zx =
+        (px - width / 2) * scale;
+
+      let zy =
+        (py - height / 2) * scale;
+
+      let iteration = 0;
+
+      while (
+        zx * zx + zy * zy < 4 &&
+        iteration < maxIterations
+      ) {
+
+        const x =
+          zx * zx -
+          zy * zy +
+          cReal;
+
+        zy =
+          2 * zx * zy +
+          cImag;
+
+        zx = x;
+
+        iteration++;
+      }
+
+
+      if (iteration === maxIterations) {
+
+        /*
+           Interior of the Julia set.
+        */
+
+        pixels[p] = 0;
+        pixels[p + 1] = 0;
+        pixels[p + 2] = 0;
+
+      } else {
+
+        /*
+           Colour depends on how rapidly the point
+           escaped from the calculation.
+        */
+
+        const value =
+          iteration / maxIterations;
+
+        pixels[p] =
+          40 +
+          215 * Math.sin(value * 5 + time) ** 2;
+
+        pixels[p + 1] =
+          30 +
+          200 * Math.sin(value * 7 + time + 2) ** 2;
+
+        pixels[p + 2] =
+          50 +
+          205 * Math.sin(value * 9 + time + 4) ** 2;
+      }
+
+      pixels[p + 3] = 255;
+
+      p += 4;
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
+
+  time += 0.035;
+}
+
+
+/*
+   Clicking or tapping chooses another
+   Julia constant.
+*/
+
+canvas.addEventListener("pointerdown", function () {
+
+  const choice =
+    julias[
+      Math.floor(Math.random() * julias.length)
+    ];
+
+  baseReal = choice[0];
+  baseImag = choice[1];
+
+  /*
+     Give it a slight random nudge so repeated
+     selections aren't exactly identical.
+  */
+
+  baseReal +=
+    (Math.random() - 0.5) * 0.04;
+
+  baseImag +=
+    (Math.random() - 0.5) * 0.04;
+});
+
+
+/*
+   We don't redraw at 60 frames per second.
+   Julia sets involve millions of calculations,
+   and there is little point cooking the phone.
+*/
+
+function animate() {
+
+  drawJulia();
+
+  setTimeout(function () {
+    requestAnimationFrame(animate);
+  }, 70);
+}
+
+animate();
+
 </script>
+
 </body>
 </html>
