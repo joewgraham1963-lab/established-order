@@ -1,1 +1,309 @@
-r
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Random Sentence Generator</title>
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #848484;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: #000;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 700px;
+      padding: 30px 20px;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 60px;
+      line-height: 1.05;
+    }
+
+    #sentence {
+      font-size: 2.2rem;
+      line-height: 1.35;
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 40px;
+    }
+
+    button {
+      font-size: 1.7rem;
+      padding: 18px 28px;
+      border-radius: 22px;
+      border: 3px solid #555;
+      background: #f3f3f3;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>Random Sentence Generator</h1>
+
+    <div id="sentence">
+      Press the button and regret giving JavaScript access to language.
+    </div>
+
+    <button onclick="generateSentence()">
+      Generate nonsense
+    </button>
+
+  </div>
+
+<script>
+
+const adjectives = [
+  "angry",
+  "melancholy",
+  "municipal",
+  "deranged",
+  "suspicious",
+  "greasy",
+  "philosophical",
+  "ferocious",
+  "confused",
+  "vindictive",
+  "wonky",
+  "shabby",
+  "bloated",
+  "professional",
+  "unlicensed",
+  "forgotten",
+  "moody",
+  "rapid",
+  "massive",
+  "tiny",
+  "fucking",
+  "pissed",
+  "shitfaced",
+  "buggered"
+];
+
+const nouns = [
+  "badger",
+  "kettle",
+  "accountant",
+  "gazebo",
+  "mobility scooter",
+  "teaspoon",
+  "cardigan",
+  "policeman",
+  "philosopher",
+  "turd",
+  "bellend",
+  "tosser",
+  "wanker",
+  "arsehole",
+  "bastard",
+  "knobhead",
+  "dickhead",
+  "prick",
+  "lunatic",
+  "pigeon",
+  "ferret",
+  "bureaucrat",
+  "sandwich",
+  "moon",
+  "toilet",
+  "wheelbarrow",
+  "parking meter",
+  "traffic cone",
+  "sausage",
+  "estate agent",
+  "weather forecast",
+  "dustbin",
+  "revolutionary",
+  "drunk",
+  "turnip"
+];
+
+const verbs = [
+  "attacks",
+  "insults",
+  "worships",
+  "ignores",
+  "licks",
+  "questions",
+  "betrays",
+  "frightens",
+  "confuses",
+  "annoys",
+  "nationalises",
+  "abandons",
+  "chases",
+  "accuses",
+  "tickles",
+  "destroys",
+  "fucks",
+  "pisses on",
+  "shits on",
+  "argues with",
+  "falls over",
+  "runs away from",
+  "politely rejects",
+  "accidentally marries",
+  "refuses to acknowledge",
+  "declares war on",
+  "gets drunk with",
+  "writes poetry about"
+];
+
+const adverbs = [
+  "angrily",
+  "moodily",
+  "quietly",
+  "violently",
+  "politely",
+  "accidentally",
+  "reluctantly",
+  "furiously",
+  "suspiciously",
+  "badly",
+  "enthusiastically",
+  "secretly",
+  "drunkenly",
+  "pointlessly",
+  "professionally",
+  "tragically"
+];
+
+const places = [
+  "behind Morrisons",
+  "inside a cupboard",
+  "at the bus stop",
+  "in Rhyl",
+  "under the table",
+  "outside the pub",
+  "inside a council office",
+  "on the Moon",
+  "behind a wheelie bin",
+  "in a forgotten car park",
+  "at three in the morning",
+  "near the sea",
+  "inside a suspicious shed"
+];
+
+const concepts = [
+  "Tuesday",
+  "capitalism",
+  "hopelessness",
+  "gravity",
+  "respectability",
+  "the weather",
+  "civilisation",
+  "authority",
+  "modern life",
+  "existence",
+  "breakfast",
+  "administration",
+  "public decency",
+  "the established order"
+];
+
+const names = [
+  "Barry",
+  "Nigel",
+  "Sharon",
+  "Kevin",
+  "Pat",
+  "Derek",
+  "Sandra",
+  "Clive",
+  "Mavis",
+  "Trevor"
+];
+
+const templates = [
+
+  () =>
+    `A ${pick(adjectives)} ${pick(nouns)} ${pick(adverbs)} ${pick(verbs)} a ${pick(nouns)}.`,
+
+  () =>
+    `The ${pick(nouns)} ${pick(verbs)} the ${pick(adjectives)} ${pick(nouns)} ${pick(places)}.`,
+
+  () =>
+    `${pick(names)} has accidentally become a ${pick(adjectives)} ${pick(nouns)}.`,
+
+  () =>
+    `Nobody expected the ${pick(adjectives)} ${pick(nouns)} to ${pick(baseVerbs)} ${pick(concepts)}.`,
+
+  () =>
+    `Why is the ${pick(nouns)} ${pick(adverbs)} arguing with a ${pick(nouns)}?`,
+
+  () =>
+    `There is a ${pick(adjectives)} ${pick(nouns)} inside the ${pick(nouns)}, and frankly nobody gives a shit.`,
+
+  () =>
+    `The ${pick(adjectives)} ${pick(nouns)} has declared war on ${pick(concepts)}.`,
+
+  () =>
+    `${pick(concepts)} has been ruined by a ${pick(adjectives)} ${pick(nouns)}.`,
+
+  () =>
+    `A ${pick(nouns)} is refusing to acknowledge a ${pick(adjectives)} ${pick(nouns)}.`,
+
+  () =>
+    `Some fucking ${pick(nouns)} is ${pick(adverbs)} ${pick(verbs)} the ${pick(nouns)} ${pick(places)}.`,
+
+  () =>
+    `The ${pick(nouns)} who hates everyone is ${pick(adverbs)} getting shitfaced.`,
+
+  () =>
+    `${pick(names)} says the ${pick(adjectives)} ${pick(nouns)} can fuck off.`
+
+];
+
+const baseVerbs = [
+  "destroy",
+  "question",
+  "ignore",
+  "betray",
+  "nationalise",
+  "insult",
+  "lick",
+  "confuse",
+  "attack",
+  "worship",
+  "abandon",
+  "ruin"
+];
+
+function pick(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+function generateSentence() {
+  const sentence =
+    templates[Math.floor(Math.random() * templates.length)]();
+
+  document.getElementById("sentence").textContent = sentence;
+}
+
+generateSentence();
+
+</script>
+
+</body>
+</html>
