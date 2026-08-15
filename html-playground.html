@@ -1,1 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>HTML Playground</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Century Gothic", Futura, Arial, sans-serif;
+      background: #848484;
+      color: white;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 24px 16px 10px;
+    }
+
+    h1 {
+      margin: 0;
+      letter-spacing: 5px;
+      font-weight: normal;
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      opacity: 0.8;
+    }
+
+    .playground {
+      width: min(1100px, 94%);
+      margin: 20px auto 40px;
+    }
+
+    .editors {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .panel {
+      background: #666;
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      letter-spacing: 2px;
+      font-weight: normal;
+    }
+
+    textarea {
+      width: 100%;
+      height: 220px;
+      resize: vertical;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 14px;
+      background: #1d1d1d;
+      color: #f5f5f5;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    button,
+    .back {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #3f3f3f;
+      color: white;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    }
+
+    button:active,
+    .back:active {
+      transform: scale(0.97);
+    }
+
+    .preview-wrap {
+      background: #666;
+      padding: 12px;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+
+    .preview-wrap h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      letter-spacing: 2px;
+      font-weight: normal;
+    }
+
+    iframe {
+      width: 100%;
+      height: 350px;
+      border: none;
+      border-radius: 8px;
+      background: white;
+    }
+
+    .back-wrap {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .back {
+      display: inline-block;
+      text-decoration: none;
+    }
+
+    @media (max-width: 800px) {
+      .editors {
+        grid-template-columns: 1fr;
+      }
+
+      textarea {
+        height: 170px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>HTML PLAYGROUND</h1>
+    <div class="subtitle">
+      Change something. Press RUN. See what you've broken.
+    </div>
+  </header>
+
+  <main class="playground">
+
+    <section class="editors">
+
+      <div class="panel">
+        <h2>HTML</h2>
+        <textarea id="htmlCode"><h1>Hello, Established Order.</h1>
+
+<p>This page is alive.</p>
+
+<button id="chaosButton">
+  Disturb the mathematics
+</button></textarea>
+      </div>
+
+      <div class="panel">
+        <h2>CSS</h2>
+        <textarea id="cssCode">body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 40px;
+  background: #eeeeee;
+}
+
+h1 {
+  color: purple;
+}
+
+button {
+  padding: 12px;
+  font-size: 18px;
+}</textarea>
+      </div>
+
+      <div class="panel">
+        <h2>JAVASCRIPT</h2>
+        <textarea id="jsCode">document
+  .getElementById("chaosButton")
+  .addEventListener("click", function () {
+
+    document.body.style.background =
+      "#" + Math.floor(Math.random() * 16777215)
+      .toString(16)
+      .padStart(6, "0");
+
+  });</textarea>
+      </div>
+
+    </section>
+
+    <div class="buttons">
+      <button onclick="runCode()">RUN</button>
+      <button onclick="resetCode()">RESET</button>
+    </div>
+
+    <section class="preview-wrap">
+      <h2>RESULT</h2>
+      <iframe id="preview"></iframe>
+    </section>
+
+    <div class="back-wrap">
+      <a class="back" href="index.html">← back</a>
+    </div>
+
+  </main>
+
+  <script>
+    const originalHTML =
+      document.getElementById("htmlCode").value;
+
+    const originalCSS =
+      document.getElementById("cssCode").value;
+
+    const originalJS =
+      document.getElementById("jsCode").value;
+
+    function runCode() {
+
+      const html =
+        document.getElementById("htmlCode").value;
+
+      const css =
+        document.getElementById("cssCode").value;
+
+      const js =
+        document.getElementById("jsCode").value;
+
+      const preview =
+        document.getElementById("preview");
+
+      const documentContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            ${css}
+          </style>
+        </head>
+        <body>
+
+          ${html}
+
+          <script>
+            try {
+              ${js}
+            } catch (error) {
+              document.body.innerHTML +=
+                "<pre style='color:red'>" +
+                error +
+                "</pre>";
+            }
+          <\/script>
+
+        </body>
+        </html>
+      `;
+
+      preview.srcdoc = documentContent;
+    }
+
+    function resetCode() {
+
+      document.getElementById("htmlCode").value =
+        originalHTML;
+
+      document.getElementById("cssCode").value =
+        originalCSS;
+
+      document.getElementById("jsCode").value =
+        originalJS;
+
+      runCode();
+    }
+
+    runCode();
+  </script>
+
+</body>
+  </html>
