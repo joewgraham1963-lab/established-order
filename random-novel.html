@@ -70,6 +70,10 @@
 
   <button onclick="continueStory()">Continue the story</button>
 
+  <button class="small" onclick="copyStory()">Copy this disaster</button>
+
+  <button class="small" onclick="downloadStory()">Download this disaster</button>
+
   <button class="small" onclick="newStory()">Start another disaster</button>
 
 </div>
@@ -421,6 +425,43 @@ function displayStory() {
     top: document.body.scrollHeight,
     behavior: "smooth"
   });
+}
+
+
+function storyAsText() {
+  return story.join("\n\n");
+}
+
+async function copyStory() {
+  const text = storyAsText();
+
+  try {
+    await navigator.clipboard.writeText(text);
+    alert("Disaster copied to clipboard.");
+  } catch (err) {
+    const box = document.createElement("textarea");
+    box.value = text;
+    document.body.appendChild(box);
+    box.select();
+    document.execCommand("copy");
+    box.remove();
+    alert("Disaster copied to clipboard.");
+  }
+}
+
+function downloadStory() {
+  const text = storyAsText();
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "random-novel-disaster.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  URL.revokeObjectURL(url);
 }
 
 function newStory() {
