@@ -1,1 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>Random Novel Engine</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #848484;
+    font-family: Arial, sans-serif;
+    color: #000;
+  }
+
+  .container {
+    width: 90%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 50px 20px 80px;
+  }
+
+  h1 {
+    font-size: 3rem;
+    line-height: 1.05;
+    text-align: center;
+    margin-bottom: 45px;
+  }
+
+  #story {
+    font-size: 1.55rem;
+    line-height: 1.55;
+    margin-bottom: 35px;
+  }
+
+  #story p {
+    margin-bottom: 1.2em;
+  }
+
+  button {
+    display: block;
+    margin: 15px auto;
+    font-size: 1.35rem;
+    padding: 16px 24px;
+    border-radius: 20px;
+    border: 3px solid #555;
+    background: #f3f3f3;
+    cursor: pointer;
+  }
+
+  button:active {
+    transform: scale(0.97);
+  }
+
+  .small {
+    font-size: 1rem;
+    padding: 12px 18px;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>Random Novel Engine</h1>
+
+  <div id="story"></div>
+
+  <button onclick="continueStory()">Continue the story</button>
+
+  <button class="small" onclick="newStory()">Start another disaster</button>
+
+</div>
+
+<script>
+
+const names = [
+  "Barry",
+  "Nigel",
+  "Derek",
+  "Mavis",
+  "Sharon",
+  "Kevin",
+  "Sandra",
+  "Clive",
+  "Pat",
+  "Trevor"
+];
+
+const nouns = [
+  "policeman",
+  "pigeon",
+  "badger",
+  "mobility scooter",
+  "wheelbarrow",
+  "gazebo",
+  "parking meter",
+  "toilet",
+  "philosopher",
+  "accountant",
+  "ferret",
+  "kettle",
+  "turd",
+  "wanker",
+  "arsehole",
+  "lunatic",
+  "dustbin",
+  "revolutionary",
+  "traffic cone",
+  "sandwich"
+];
+
+const adjectives = [
+  "angry",
+  "vindictive",
+  "melancholy",
+  "greasy",
+  "bloated",
+  "confused",
+  "deranged",
+  "wonky",
+  "professional",
+  "suspicious",
+  "ferocious",
+  "tiny",
+  "massive",
+  "shitfaced",
+  "fucking",
+  "moody",
+  "forgotten",
+  "municipal"
+];
+
+const adverbs = [
+  "secretly",
+  "angrily",
+  "reluctantly",
+  "badly",
+  "enthusiastically",
+  "pointlessly",
+  "quietly",
+  "drunkenly",
+  "furiously",
+  "accidentally",
+  "politely",
+  "suspiciously",
+  "tragically"
+];
+
+const verbs = [
+  "questions",
+  "betrays",
+  "worships",
+  "ignores",
+  "chases",
+  "insults",
+  "abandons",
+  "licks",
+  "confuses",
+  "annoys",
+  "destroys",
+  "nationalises",
+  "accuses",
+  "tickles",
+  "pisses on",
+  "shits on",
+  "argues with",
+  "writes poetry about",
+  "refuses to acknowledge",
+  "declares war on",
+  "accidentally marries",
+  "gets drunk with"
+];
+
+const concepts = [
+  "capitalism",
+  "authority",
+  "modern life",
+  "breakfast",
+  "civilisation",
+  "public decency",
+  "hopelessness",
+  "respectability",
+  "gravity",
+  "Tuesday",
+  "administration",
+  "the established order"
+];
+
+const places = [
+  "in Rhyl",
+  "outside the pub",
+  "behind a wheelie bin",
+  "inside a cupboard",
+  "under the table",
+  "near the sea",
+  "inside a suspicious shed",
+  "at the bus stop",
+  "in a forgotten car park",
+  "behind Morrisons",
+  "inside a council office"
+];
+
+const transitions = [
+  "Meanwhile",
+  "By morning",
+  "Three days later",
+  "For reasons nobody understood",
+  "Without warning",
+  "Later that afternoon",
+  "Somewhere nearby",
+  "At precisely the wrong moment",
+  "Nobody mentioned it again, but",
+  "Things became considerably worse when",
+  "Against all reasonable expectations"
+];
+
+let story = [];
+
+let memory = {
+  characters: [],
+  objects: [],
+  places: [],
+  concepts: []
+};
+
+function pick(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+function chance(percent) {
+  return Math.random() * 100 < percent;
+}
+
+function remember(array, item) {
+  if (!array.includes(item)) {
+    array.push(item);
+  }
+
+  if (array.length > 6) {
+    array.shift();
+  }
+}
+
+function rememberedOrNew(memoryArray, sourceArray, reuseChance = 55) {
+  if (memoryArray.length > 0 && chance(reuseChance)) {
+    return pick(memoryArray);
+  }
+
+  return pick(sourceArray);
+}
+
+function getCharacter() {
+  let character;
+
+  if (chance(45)) {
+    character = rememberedOrNew(memory.characters, names);
+  } else {
+    character = rememberedOrNew(memory.objects, nouns);
+  }
+
+  remember(
+    names.includes(character) ? memory.characters : memory.objects,
+    character
+  );
+
+  return character;
+}
+
+function getObject() {
+  const obj = rememberedOrNew(memory.objects, nouns, 60);
+  remember(memory.objects, obj);
+  return obj;
+}
+
+function getPlace() {
+  const place = rememberedOrNew(memory.places, places, 45);
+  remember(memory.places, place);
+  return place;
+}
+
+function getConcept() {
+  const concept = rememberedOrNew(memory.concepts, concepts, 55);
+  remember(memory.concepts, concept);
+  return concept;
+}
+
+function article(word) {
+  const first = word.trim().charAt(0).toLowerCase();
+
+  if ("aeiou".includes(first)) {
+    return "an";
+  }
+
+  return "a";
+}
+
+function generateSentence() {
+
+  const subject = getCharacter();
+  const object = getObject();
+  const adjective = pick(adjectives);
+  const adjective2 = pick(adjectives);
+  const adverb = pick(adverbs);
+  const verb = pick(verbs);
+  const place = getPlace();
+  const concept = getConcept();
+
+  const templates = [
+
+    () =>
+      `${capitalise(subject)} ${adverb} ${verb} the ${adjective} ${object} ${place}.`,
+
+    () =>
+      `Nobody expected ${subject} to ${baseVerb()} ${concept}.`,
+
+    () =>
+      `The ${adjective} ${subject} ${verb} the ${adjective2} ${object} ${place}.`,
+
+    () =>
+      `${capitalise(subject)} has accidentally become ${article(adjective)} ${adjective} ${object}.`,
+
+    () =>
+      `${capitalise(concept)} has been ruined by ${article(adjective)} ${adjective} ${object}.`,
+
+    () =>
+      `${capitalise(subject)} refuses to acknowledge the ${adjective} ${object}.`,
+
+    () =>
+      `${capitalise(subject)} has declared war on ${concept}.`,
+
+    () =>
+      `Why is ${subject} ${adverb} arguing with the ${object}?`,
+
+    () =>
+      `${capitalise(subject)} says the ${adjective} ${object} can fuck off.`,
+
+    () =>
+      `There is ${article(adjective)} ${adjective} ${object} ${place}, and nobody seems particularly concerned.`,
+
+    () =>
+      `${capitalise(subject)} remembers the ${object}, although nobody else does.`,
+
+    () =>
+      `The ${object} has returned, considerably more ${adjective} than before.`,
+
+    () =>
+      `${capitalise(subject)} begins to suspect that ${concept} is somehow connected to the ${object}.`,
+
+    () =>
+      `For the second time that day, ${subject} encounters the ${adjective} ${object} ${place}.`,
+
+    () =>
+      `${capitalise(subject)} wishes the ${object} would stop talking about ${concept}.`
+  ];
+
+  let sentence = pick(templates)();
+
+  if (story.length > 2 && chance(28)) {
+    sentence = pick(transitions) + ", " + lowerFirst(sentence);
+  }
+
+  return sentence;
+}
+
+function baseVerb() {
+  return pick([
+    "destroy",
+    "question",
+    "ignore",
+    "betray",
+    "nationalise",
+    "insult",
+    "confuse",
+    "abandon",
+    "ruin",
+    "worship",
+    "challenge",
+    "investigate"
+  ]);
+}
+
+function capitalise(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function lowerFirst(text) {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+function continueStory() {
+
+  let paragraph = [];
+
+  const sentenceCount = Math.floor(Math.random() * 3) + 2;
+
+  for (let i = 0; i < sentenceCount; i++) {
+    paragraph.push(generateSentence());
+  }
+
+  story.push(paragraph.join(" "));
+
+  displayStory();
+}
+
+function displayStory() {
+
+  const storyDiv = document.getElementById("story");
+
+  storyDiv.innerHTML = "";
+
+  story.forEach(paragraph => {
+    const p = document.createElement("p");
+    p.textContent = paragraph;
+    storyDiv.appendChild(p);
+  });
+
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: "smooth"
+  });
+}
+
+function newStory() {
+
+  story = [];
+
+  memory = {
+    characters: [],
+    objects: [],
+    places: [],
+    concepts: []
+  };
+
+  continueStory();
+}
+
+newStory();
+
+</script>
+
+</body>
+</html>
