@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Random Novel Engine</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #848484;
+    font-family: Arial, sans-serif;
+    color: #000;
+  }
+
+  .container {
+    width: 90%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 50px 20px 80px;
+  }
+
+  h1 {
+    font-size: 3rem;
+    line-height: 1.05;
+    text-align: center;
+    margin-bottom: 45px;
+  }
+
+  #story {
+    font-size: 1.55rem;
+    line-height: 1.55;
+    margin-bottom: 35px;
+  }
+
+  #story p {
+    margin-bottom: 1.2em;
+  }
+
+  button {
+    display: block;
+    margin: 15px auto;
+    font-size: 1.35rem;
+    padding: 16px 24px;
+    border-radius: 20px;
+    border: 3px solid #555;
+    background: #f3f3f3;
+    cursor: pointer;
+  }
+
+  button:active {
+    transform: scale(0.97);
+  }
+
+  .small {
+    font-size: 1rem;
+    padding: 12px 18px;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>Random Novel Engine</h1>
+
+  <div id="story"></div>
+
+  <button onclick="continueStory()">Continue the story</button>
+
+  <button class="small" onclick="copyStory()">Copy this disaster</button>
+
+  <button class="small" onclick="downloadStory()">Download this disaster</button>
+
+  <button class="small" onclick="newStory()">Start another disaster</button>
+
+</div>
+
+<script>
+
+const names = [
+  "Barry",
+  "Nigel",
+  "Derek",
+  "Mavis",
+  "Sharon",
+  "Kevin",
+  "Sandra",
+  "Clive",
+  "Pat",
+  "Trevor"
+];
+
+const nouns = [
+  "policeman",
+  "pigeon",
+  "badger",
+  "mobility scooter",
+  "wheelbarrow",
+  "gazebo",
+  "parking meter",
+  "toilet",
+  "philosopher",
+  "accountant",
+  "ferret",
+  "kettle",
+  "turd",
+  "wanker",
+  "arsehole",
+  "lunatic",
+  "dustbin",
+  "revolutionary",
+  "traffic cone",
+  "sandwich"
+];
+
+const adjectives = [
+  "angry",
+  "vindictive",
+  "melancholy",
+  "greasy",
+  "bloated",
+  "confused",
+  "deranged",
+  "wonky",
+  "professional",
+  "suspicious",
+  "ferocious",
+  "tiny",
+  "massive",
+  "shitfaced",
+  "fucking",
+  "moody",
+  "forgotten",
+  "municipal"
+];
+
+const adverbs = [
+  "secretly",
+  "angrily",
+  "reluctantly",
+  "badly",
+  "enthusiastically",
+  "pointlessly",
+  "quietly",
+  "drunkenly",
+  "furiously",
+  "accidentally",
+  "politely",
+  "suspiciously",
+  "tragically"
+];
+
+const verbs = [
+  "questions",
+  "betrays",
+  "worships",
+  "ignores",
+  "chases",
+  "insults",
+  "abandons",
+  "licks",
+  "confuses",
+  "annoys",
+  "destroys",
+  "nationalises",
+  "accuses",
+  "tickles",
+  "pisses on",
+  "shits on",
+  "argues with",
+  "writes poetry about",
+  "refuses to acknowledge",
+  "declares war on",
+  "accidentally marries",
+  "gets drunk with"
+];
+
+const concepts = [
+  "capitalism",
+  "authority",
+  "modern life",
+  "breakfast",
+  "civilisation",
+  "public decency",
+  "hopelessness",
+  "respectability",
+  "gravity",
+  "Tuesday",
+  "administration",
+  "the established order"
+];
+
+const places = [
+  "in Rhyl",
+  "outside the pub",
+  "behind a wheelie bin",
+  "inside a cupboard",
+  "under the table",
+  "near the sea",
+  "inside a suspicious shed",
+  "at the bus stop",
+  "in a forgotten car park",
+  "behind Morrisons",
+  "inside a council office"
+];
+
+const transitions = [
+  "Meanwhile",
+  "By morning",
+  "Three days later",
+  "For reasons nobody understood",
+  "Without warning",
+  "Later that afternoon",
+  "Somewhere nearby",
+  "At precisely the wrong moment",
+  "Nobody mentioned it again, but",
+  "Things became considerably worse when",
+  "Against all reasonable expectations"
+];
+
+let story = [];
+
+let memory = {
+  characters: [],
+  objects: [],
+  places: [],
+  concepts: []
+};
+
+// Hidden plot: each new disaster secretly chooses its own recurring mystery.
+let plot = {};
+let sentenceNumber = 0;
+
+function resetPlot() {
+  const protagonist = pick(names);
+  const mysteryObject = pick(nouns);
+  const mysteryConcept = pick(concepts);
+  const importantPlace = pick(places);
+  let antagonist = pick(names.filter(name => name !== protagonist));
+
+  plot = {
+    protagonist,
+    mysteryObject,
+    mysteryConcept,
+    importantPlace,
+    antagonist,
+    stage: 1,
+    complete: false,
+    usedPlotLines: {
+      1: [],
+      2: [],
+      3: [],
+      4: [],
+      5: []
+    }
+  };
+
+  // Seed ordinary memory so plot elements can also recur by accident.
+  remember(memory.characters, protagonist);
+  remember(memory.characters, antagonist);
+  remember(memory.objects, mysteryObject);
+  remember(memory.concepts, mysteryConcept);
+  remember(memory.places, importantPlace);
+}
+
+function updatePlotStage() {
+  // Very slow progression: roughly a chapter-sized drift rather than a plot hammer.
+  if (sentenceNumber >= 70) plot.stage = 5;
+  else if (sentenceNumber >= 50) plot.stage = 4;
+  else if (sentenceNumber >= 30) plot.stage = 3;
+  else if (sentenceNumber >= 12) plot.stage = 2;
+  else plot.stage = 1;
+}
+
+function generatePlotSentence() {
+  const p = plot.protagonist;
+  const o = plot.mysteryObject;
+  const c = plot.mysteryConcept;
+  const place = plot.importantPlace;
+  const enemy = plot.antagonist;
+
+  const stages = {
+    1: [
+      () => `${p} begins to suspect that ${c} is somehow connected to the ${o}.`,
+      () => `${p} remembers the ${o}, although nobody else does.`,
+      () => `Nobody can explain why ${p} keeps returning ${place}.`,
+      () => `${p} has started asking awkward questions about ${c}.`
+    ],
+    2: [
+      () => `${p} encounters the ${o} ${place} for the second time that week.`,
+      () => `${p} is increasingly certain that ${enemy} knows something about the ${o}.`,
+      () => `${enemy} refuses to discuss ${c} with ${p}.`,
+      () => `For reasons nobody understood, the ${o} has become unusually important to ${p}.`
+    ],
+    3: [
+      () => `${enemy} warns ${p} to stop asking questions about the ${o}.`,
+      () => `${p} discovers that somebody has been lying about ${c}.`,
+      () => `Things became considerably worse when ${p} found the ${o} ${place}.`,
+      () => `${p} has declared war on anyone concealing the truth about ${c}.`
+    ],
+    4: [
+      () => `${p} finally understands why ${enemy} was frightened of the ${o}.`,
+      () => `Against all reasonable expectations, ${c} really was connected to the ${o}.`,
+      () => `${p} realises that everything seems to lead back ${place}.`,
+      () => `${enemy} admits that the ${o} was never supposed to be found.`
+    ],
+    5: [
+      () => `By morning, ${p} knows what must be done about the ${o}.`,
+      () => `${p} returns ${place} to settle the matter once and for all.`,
+      () => `Nobody ever discovers exactly what ${p} did to the ${o}.`,
+      () => `After everything that happened, ${p} refuses to discuss ${c} again.`,
+      () => `The ${o} disappears, and for a while ${c} appears to return to normal.`
+    ]
+  };
+
+  const available = stages[plot.stage]
+    .map((fn, index) => ({ fn, index }))
+    .filter(item => !plot.usedPlotLines[plot.stage].includes(item.index));
+
+  // If every line in an early stage has appeared, wait for the sentence-count
+  // progression rather than repeating it.
+  if (available.length === 0) {
+    if (plot.stage === 5) {
+      plot.complete = true;
+      return null;
+    }
+    return null;
+  }
+
+  const chosen = pick(available);
+  plot.usedPlotLines[plot.stage].push(chosen.index);
+  const sentence = chosen.fn();
+
+  // Once every ending line has appeared, the concealed plot is finished.
+  if (plot.stage === 5 &&
+      plot.usedPlotLines[5].length === stages[5].length) {
+    plot.complete = true;
+  }
+
+  return sentence;
+}
+
+function pick(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+function chance(percent) {
+  return Math.random() * 100 < percent;
+}
+
+function remember(array, item) {
+  if (!array.includes(item)) {
+    array.push(item);
+  }
+
+  if (array.length > 6) {
+    array.shift();
+  }
+}
+
+function rememberedOrNew(memoryArray, sourceArray, reuseChance = 55) {
+  if (memoryArray.length > 0 && chance(reuseChance)) {
+    return pick(memoryArray);
+  }
+
+  return pick(sourceArray);
+}
+
+function getCharacter() {
+  let character;
+
+  if (chance(45)) {
+    character = rememberedOrNew(memory.characters, names);
+  } else {
+    character = rememberedOrNew(memory.objects, nouns);
+  }
+
+  remember(
+    names.includes(character) ? memory.characters : memory.objects,
+    character
+  );
+
+  return character;
+}
+
+function getObject() {
+  const obj = rememberedOrNew(memory.objects, nouns, 60);
+  remember(memory.objects, obj);
+  return obj;
+}
+
+function getPlace() {
+  const place = rememberedOrNew(memory.places, places, 45);
+  remember(memory.places, place);
+  return place;
+}
+
+function getConcept() {
+  const concept = rememberedOrNew(memory.concepts, concepts, 55);
+  remember(memory.concepts, concept);
+  return concept;
+}
+
+function article(word) {
+  const first = word.trim().charAt(0).toLowerCase();
+
+  if ("aeiou".includes(first)) {
+    return "an";
+  }
+
+  return "a";
+}
+
+function generateSentence() {
+
+  sentenceNumber++;
+  updatePlotStage();
+
+  // About one sentence in twelve advances the concealed plot.
+  // The other eleven remain the original uncontrolled disaster.
+  if (plot.protagonist && !plot.complete && chance(8)) {
+    let plotSentence = generatePlotSentence();
+
+    if (plotSentence) {
+      if (story.length > 2 && chance(22)) {
+        plotSentence = pick(transitions) + ", " + lowerFirst(plotSentence);
+      }
+
+      return plotSentence;
+    }
+  }
+
+  const subject = getCharacter();
+  const object = getObject();
+  const adjective = pick(adjectives);
+  const adjective2 = pick(adjectives);
+  const adverb = pick(adverbs);
+  const verb = pick(verbs);
+  const place = getPlace();
+  const concept = getConcept();
+
+  const templates = [
+
+    () =>
+      `${capitalise(subject)} ${adverb} ${verb} the ${adjective} ${object} ${place}.`,
+
+    () =>
+      `Nobody expected ${subject} to ${baseVerb()} ${concept}.`,
+
+    () =>
+      `The ${adjective} ${subject} ${verb} the ${adjective2} ${object} ${place}.`,
+
+    () =>
+      `${capitalise(subject)} has accidentally become ${article(adjective)} ${adjective} ${object}.`,
+
+    () =>
+      `${capitalise(concept)} has been ruined by ${article(adjective)} ${adjective} ${object}.`,
+
+    () =>
+      `${capitalise(subject)} refuses to acknowledge the ${adjective} ${object}.`,
+
+    () =>
+      `${capitalise(subject)} has declared war on ${concept}.`,
+
+    () =>
+      `Why is ${subject} ${adverb} arguing with the ${object}?`,
+
+    () =>
+      `${capitalise(subject)} says the ${adjective} ${object} can fuck off.`,
+
+    () =>
+      `There is ${article(adjective)} ${adjective} ${object} ${place}, and nobody seems particularly concerned.`,
+
+    () =>
+      `${capitalise(subject)} remembers the ${object}, although nobody else does.`,
+
+    () =>
+      `The ${object} has returned, considerably more ${adjective} than before.`,
+
+    () =>
+      `${capitalise(subject)} begins to suspect that ${concept} is somehow connected to the ${object}.`,
+
+    () =>
+      `For the second time that day, ${subject} encounters the ${adjective} ${object} ${place}.`,
+
+    () =>
+      `${capitalise(subject)} wishes the ${object} would stop talking about ${concept}.`
+  ];
+
+  let sentence = pick(templates)();
+
+  if (story.length > 2 && chance(28)) {
+    sentence = pick(transitions) + ", " + lowerFirst(sentence);
+  }
+
+  return sentence;
+}
+
+function baseVerb() {
+  return pick([
+    "destroy",
+    "question",
+    "ignore",
+    "betray",
+    "nationalise",
+    "insult",
+    "confuse",
+    "abandon",
+    "ruin",
+    "worship",
+    "challenge",
+    "investigate"
+  ]);
+}
+
+function capitalise(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function lowerFirst(text) {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+function continueStory() {
+
+  let paragraph = [];
+
+  const sentenceCount = Math.floor(Math.random() * 3) + 2;
+
+  for (let i = 0; i < sentenceCount; i++) {
+    paragraph.push(generateSentence());
+  }
+
+  story.push(paragraph.join(" "));
+
+  displayStory();
+}
+
+function displayStory() {
+
+  const storyDiv = document.getElementById("story");
+
+  storyDiv.innerHTML = "";
+
+  story.forEach(paragraph => {
+    const p = document.createElement("p");
+    p.textContent = paragraph;
+    storyDiv.appendChild(p);
+  });
+
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: "smooth"
+  });
+}
+
+
+function storyAsText() {
+  return story.join("\n\n");
+}
+
+async function copyStory() {
+  const text = storyAsText();
+
+  try {
+    await navigator.clipboard.writeText(text);
+    alert("Disaster copied to clipboard.");
+  } catch (err) {
+    const box = document.createElement("textarea");
+    box.value = text;
+    document.body.appendChild(box);
+    box.select();
+    document.execCommand("copy");
+    box.remove();
+    alert("Disaster copied to clipboard.");
+  }
+}
+
+function downloadStory() {
+  const text = storyAsText();
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "random-novel-disaster.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  URL.revokeObjectURL(url);
+}
+
+function newStory() {
+
+  story = [];
+
+  memory = {
+    characters: [],
+    objects: [],
+    places: [],
+    concepts: []
+  };
+
+  sentenceNumber = 0;
+  resetPlot();
+
+  continueStory();
+}
+
+newStory();
+
+</script>
+
+</body>
+</html>
