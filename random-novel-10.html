@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Random Novel Engine</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #848484;
+    font-family: Arial, sans-serif;
+    color: #000;
+  }
+
+  .container {
+    width: 90%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 50px 20px 80px;
+  }
+
+  h1 {
+    font-size: 3rem;
+    line-height: 1.05;
+    text-align: center;
+    margin-bottom: 45px;
+  }
+
+  #story {
+    font-size: 1.55rem;
+    line-height: 1.55;
+    margin-bottom: 35px;
+  }
+
+  #story p {
+    margin-bottom: 1.2em;
+  }
+
+  button {
+    display: block;
+    margin: 15px auto;
+    font-size: 1.35rem;
+    padding: 16px 24px;
+    border-radius: 20px;
+    border: 3px solid #555;
+    background: #f3f3f3;
+    cursor: pointer;
+  }
+
+  button:active {
+    transform: scale(0.97);
+  }
+
+  .small {
+    font-size: 1rem;
+    padding: 12px 18px;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>Random Novel Engine</h1>
+
+  <div id="story"></div>
+
+  <button onclick="continueStory()">Continue the story</button>
+
+  <button class="small" onclick="copyStory()">Copy this disaster</button>
+
+  <button class="small" onclick="downloadStory()">Download this disaster</button>
+
+  <button class="small" onclick="newStory()">Start another disaster</button>
+
+</div>
+
+<script>
+
+const names = [
+  "Barry",
+  "Nigel",
+  "Derek",
+  "Mavis",
+  "Sharon",
+  "Kevin",
+  "Sandra",
+  "Clive",
+  "Pat",
+  "Trevor"
+];
+
+const nouns = [
+  "policeman",
+  "pigeon",
+  "badger",
+  "mobility scooter",
+  "wheelbarrow",
+  "gazebo",
+  "parking meter",
+  "toilet",
+  "philosopher",
+  "accountant",
+  "ferret",
+  "kettle",
+  "turd",
+  "wanker",
+  "arsehole",
+  "lunatic",
+  "dustbin",
+  "revolutionary",
+  "traffic cone",
+  "sandwich"
+];
+
+const adjectives = [
+  "angry",
+  "vindictive",
+  "melancholy",
+  "greasy",
+  "bloated",
+  "confused",
+  "deranged",
+  "wonky",
+  "professional",
+  "suspicious",
+  "ferocious",
+  "tiny",
+  "massive",
+  "shitfaced",
+  "fucking",
+  "moody",
+  "forgotten",
+  "municipal"
+];
+
+const adverbs = [
+  "secretly",
+  "angrily",
+  "reluctantly",
+  "badly",
+  "enthusiastically",
+  "pointlessly",
+  "quietly",
+  "drunkenly",
+  "furiously",
+  "accidentally",
+  "politely",
+  "suspiciously",
+  "tragically"
+];
+
+const verbs = [
+  "questions",
+  "betrays",
+  "worships",
+  "ignores",
+  "chases",
+  "insults",
+  "abandons",
+  "licks",
+  "confuses",
+  "annoys",
+  "destroys",
+  "nationalises",
+  "accuses",
+  "tickles",
+  "pisses on",
+  "shits on",
+  "argues with",
+  "writes poetry about",
+  "refuses to acknowledge",
+  "declares war on",
+  "accidentally marries",
+  "gets drunk with"
+];
+
+const concepts = [
+  "capitalism",
+  "authority",
+  "modern life",
+  "breakfast",
+  "civilisation",
+  "public decency",
+  "hopelessness",
+  "respectability",
+  "gravity",
+  "Tuesday",
+  "administration",
+  "the established order"
+];
+
+const places = [
+  "in Rhyl",
+  "outside the pub",
+  "behind a wheelie bin",
+  "inside a cupboard",
+  "under the table",
+  "near the sea",
+  "inside a suspicious shed",
+  "at the bus stop",
+  "in a forgotten car park",
+  "behind Morrisons",
+  "inside a council office"
+];
+
+const transitions = [
+  "Meanwhile",
+  "By morning",
+  "Three days later",
+  "For reasons nobody understood",
+  "Without warning",
+  "Later that afternoon",
+  "Somewhere nearby",
+  "At precisely the wrong moment",
+  "Nobody mentioned it again, but",
+  "Things became considerably worse when",
+  "Against all reasonable expectations"
+];
+
+let story = [];
+
+let memory = {
+  characters: [],
+  objects: [],
+  places: [],
+  concepts: []
+};
+
+// Hidden plot: each new disaster secretly chooses its own recurring mystery.
+let plot = {};
+let sentenceNumber = 0;
+
+function resetPlot() {
+  const protagonist = focusedPick(names, localFocus.subjects, 58);
+  const mysteryObject = focusedPick(nouns, localFocus.objects, 58);
+  const mysteryConcept = pick(concepts);
+  const importantPlace = focusedPick(places, localFocus.places, 52);
+  let antagonist = pick(names.filter(name => name !== protagonist));
+
+  plot = {
+    protagonist,
+    mysteryObject,
+    mysteryConcept,
+    importantPlace,
+    antagonist,
+    stage: 1,
+    stageName: "MYSTERY",
+    complete: false,
+    endShown: false,
+    usedPlotLines: {
+      1: [],
+      2: [],
+      3: [],
+      4: [],
+      5: []
+    }
+  };
+
+  // Seed ordinary memory so plot elements can also recur by accident.
+  remember(memory.characters, protagonist);
+  remember(memory.characters, antagonist);
+  remember(memory.objects, mysteryObject);
+  remember(memory.concepts, mysteryConcept);
+  remember(memory.places, importantPlace);
+}
+
+function updatePlotStage() {
+  // Five-act concealed structure. Plot callbacks can only come from the current act,
+  // so revelations and aftermath cannot leak into the mystery too early.
+  const stages = [
+    { min: 0,  stage: 1, name: "MYSTERY" },
+    { min: 14, stage: 2, name: "INVESTIGATION" },
+    { min: 32, stage: 3, name: "ESCALATION" },
+    { min: 52, stage: 4, name: "RESOLUTION" },
+    { min: 70, stage: 5, name: "AFTERMATH" }
+  ];
+
+  const current = [...stages].reverse().find(s => sentenceNumber >= s.min);
+  plot.stage = current.stage;
+  plot.stageName = current.name;
+}
+
+function generatePlotSentence() {
+  const p = plot.protagonist;
+  const o = plot.mysteryObject;
+  const c = plot.mysteryConcept;
+  const place = plot.importantPlace;
+  const enemy = plot.antagonist;
+
+  const stages = {
+    1: [
+      () => `${p} begins to suspect that ${c} is somehow connected to the ${o}.`,
+      () => `${p} remembers the ${o}, although nobody else does.`,
+      () => `Nobody can explain why ${p} keeps returning ${place}.`,
+      () => `${p} has started asking awkward questions about ${c}.`
+    ],
+    2: [
+      () => `${p} encounters the ${o} ${place} for the second time that week.`,
+      () => `${p} is increasingly certain that ${enemy} knows something about the ${o}.`,
+      () => `${enemy} refuses to discuss ${c} with ${p}.`,
+      () => `For reasons nobody understood, the ${o} has become unusually important to ${p}.`
+    ],
+    3: [
+      () => `${enemy} warns ${p} to stop asking questions about the ${o}.`,
+      () => `${p} discovers that somebody has been lying about ${c}.`,
+      () => `Things became considerably worse when ${p} found the ${o} ${place}.`,
+      () => `${p} has declared war on anyone concealing the truth about ${c}.`
+    ],
+    4: [
+      () => `${p} finally understands why ${enemy} was frightened of the ${o}.`,
+      () => `Against all reasonable expectations, ${c} really was connected to the ${o}.`,
+      () => `${p} realises that everything seems to lead back ${place}.`,
+      () => `${enemy} admits that the ${o} was never supposed to be found.`
+    ],
+    5: [
+      () => `By morning, ${p} knows what must be done about the ${o}.`,
+      () => `${p} returns ${place} to settle the matter once and for all.`,
+      () => `Nobody ever discovers exactly what ${p} did to the ${o}.`,
+      () => `After everything that happened, ${p} refuses to discuss ${c} again.`,
+      () => `The ${o} disappears, and for a while ${c} appears to return to normal.`
+    ]
+  };
+
+  const available = stages[plot.stage]
+    .map((fn, index) => ({ fn, index }))
+    .filter(item => !plot.usedPlotLines[plot.stage].includes(item.index));
+
+  // If every line in an early stage has appeared, wait for the sentence-count
+  // progression rather than repeating it.
+  if (available.length === 0) {
+    if (plot.stage === 5) {
+      plot.complete = true;
+      return null;
+    }
+    return null;
+  }
+
+  const chosen = pick(available);
+  plot.usedPlotLines[plot.stage].push(chosen.index);
+  const sentence = chosen.fn();
+
+  // Once every ending line has appeared, the concealed plot is finished.
+  if (plot.stage === 5 &&
+      plot.usedPlotLines[5].length === stages[5].length) {
+    plot.complete = true;
+
+    if (!plot.endShown) {
+      plot.endShown = true;
+      return sentence + " [[STORY_END]]";
+    }
+  }
+
+  return sentence;
+}
+
+function pick(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+function chance(percent) {
+  return Math.random() * 100 < percent;
+}
+
+function remember(array, item) {
+  if (!array.includes(item)) {
+    array.push(item);
+  }
+
+  if (array.length > 6) {
+    array.shift();
+  }
+}
+
+function rememberedOrNew(memoryArray, sourceArray, reuseChance = 55) {
+  if (memoryArray.length > 0 && chance(reuseChance)) {
+    return pick(memoryArray);
+  }
+
+  return pick(sourceArray);
+}
+
+function getCharacter() {
+  let character;
+
+  if (chance(45)) {
+    character = rememberedOrNew(memory.characters, names);
+  } else {
+    character = rememberedOrNew(memory.objects, nouns);
+  }
+
+  remember(
+    names.includes(character) ? memory.characters : memory.objects,
+    character
+  );
+
+  return character;
+}
+
+function getObject() {
+  const obj = rememberedOrNew(memory.objects, nouns, 60);
+  remember(memory.objects, obj);
+  return obj;
+}
+
+function getPlace() {
+  const place = rememberedOrNew(memory.places, places, 45);
+  remember(memory.places, place);
+  return place;
+}
+
+function getConcept() {
+  const concept = rememberedOrNew(memory.concepts, concepts, 55);
+  remember(memory.concepts, concept);
+  return concept;
+}
+
+function article(word) {
+  const first = word.trim().charAt(0).toLowerCase();
+
+  if ("aeiou".includes(first)) {
+    return "an";
+  }
+
+  return "a";
+}
+
+
+
+let eventMemory = [];
+let characterState = {};
+let localFocus = { subjects: [], objects: [], places: [], remaining: 0 };
+
+function setLocalFocus(subject, object, place = "") {
+  localFocus = {
+    subjects: subject ? [subject] : [],
+    objects: object ? [object] : [],
+    places: place ? [place] : [],
+    remaining: 3 + Math.floor(Math.random() * 3)
+  };
+}
+
+function ageLocalFocus() {
+  if (localFocus.remaining > 0) localFocus.remaining--;
+  if (localFocus.remaining <= 0) {
+    localFocus = { subjects: [], objects: [], places: [], remaining: 0 };
+  }
+}
+
+function focusedPick(list, focused, probability = 58) {
+  if (localFocus.remaining > 0 && focused && focused.length && chance(probability)) {
+    const available = focused.filter(item => list.includes(item));
+    if (available.length) return pick(available);
+  }
+  return pick(list);
+}
+
+
+function rememberEvent(subject, action, object, place = "", type = "object", importance = 1) {
+  eventMemory.push({ subject, action, object, place, type, importance });
+  if (eventMemory.length > 14) eventMemory.shift();
+
+  // Most remembered events create a brief local cluster, but not always.
+  if (chance(72)) setLocalFocus(subject, type === "object" ? object : "", place);
+}
+
+function pickRememberedEvent() {
+  const weighted = [];
+  eventMemory.forEach(event => {
+    const weight = Math.max(1, event.importance || 1);
+    for (let i = 0; i < weight; i++) weighted.push(event);
+  });
+  return pick(weighted);
+}
+
+function rememberState(subject, form) {
+  characterState[subject] = { form, age: 0 };
+}
+
+function ageCharacterStates() {
+  Object.keys(characterState).forEach(subject => {
+    characterState[subject].age++;
+    if (characterState[subject].age > 28 || chance(4)) {
+      delete characterState[subject];
+    }
+  });
+}
+
+function generateStateCallback() {
+  const subjects = Object.keys(characterState);
+  if (!subjects.length) return null;
+
+  const subject = pick(subjects);
+  const form = characterState[subject].form;
+
+  return pick([
+    `${capitalise(subject)} was still, for practical purposes, a ${form}.`,
+    `Nobody had yet explained why ${subject} was still a ${form}.`,
+    `${capitalise(subject)} appeared unwilling to discuss the continuing ${form} situation.`,
+    `Recent events had done little to alter the fact that ${subject} was apparently a ${form}.`,
+    `For administrative purposes, ${subject} was still listed as a ${form}.`
+  ]);
+}
+
+function callbackThing(event) {
+  if (event.type === "concept") return event.object;
+  return "the " + event.object;
+}
+
+function generateCallbackSentence() {
+  if (!eventMemory.length) return null;
+
+  const e = pickRememberedEvent();
+  const s = e.subject;
+  const o = e.object;
+  const thing = callbackThing(e);
+  const place = e.place;
+
+  return pick([
+    () => `Nobody had entirely forgotten what ${s} did to ${thing}.`,
+    () => `The incident involving ${s} and ${thing} was mentioned again.`,
+    () => `${capitalise(s)}'s involvement with ${thing} had become increasingly difficult to explain.`,
+    () => `Nobody remembered the business with ${thing} quite the same way.`,
+    () => `"We are not discussing what happened to ${thing}," said ${getCharacter()}.`,
+    () => `The incident involving ${thing} continued to trouble ${s}.`,
+    () => `In retrospect, the trouble with ${thing} had probably started with ${s}.`,
+    () => `There were still unanswered questions about ${s} and ${thing}.`,
+    () => `For administrative purposes, what ${s} did to ${thing} had never officially happened.`,
+    () => `People had begun referring to it simply as the ${o} incident.`,
+    () => `${capitalise(s)} had hoped everyone would forget about ${thing}. They had not.`,
+    () => `Whatever else happened, nobody wanted a repeat of the ${o} business.`,
+    () => `The subject of ${thing} made ${s} unusually quiet.`,
+    () => `Recent events had done little to clarify ${s}'s relationship with ${thing}.`,
+    () => `Someone mentioned ${thing}, and ${s} immediately changed the subject.`,
+    () => `The consequences of the ${o} incident were still being disputed.`,
+    () => `Nobody could establish whether ${s} regretted what happened to ${thing}.`,
+    () => place ? `People ${place} still remembered the incident involving ${s} and ${thing}.`
+                : `People still remembered the incident involving ${s} and ${thing}.`
+  ])();
+}
+
+let proseMemory = {
+  dialogue: [],
+  description: [],
+  narrator: [],
+  situationist: [],
+  bodily: []
+};
+
+function pickFreshTemplate(category, templates) {
+  const recent = proseMemory[category];
+  let choices = templates
+    .map((fn, index) => ({ fn, index }))
+    .filter(item => !recent.includes(item.index));
+
+  if (choices.length === 0) {
+    proseMemory[category] = [];
+    choices = templates.map((fn, index) => ({ fn, index }));
+  }
+
+  const chosen = pick(choices);
+  proseMemory[category].push(chosen.index);
+
+  // Don't reuse any of the last 8 structures in this category.
+  if (proseMemory[category].length > 8) proseMemory[category].shift();
+
+  return chosen.fn();
+}
+
+function generateDialogueSentence() {
+  const speaker = getCharacter();
+  const other = getCharacter();
+  const object = getObject();
+  const object2 = getObject();
+  const concept = getConcept();
+  const place = getPlace();
+
+  const templates = [
+    () => `"You know perfectly well what this is about," said ${speaker}.`,
+    () => `"I'm not discussing the ${object} again," said ${speaker}.`,
+    () => `"This has nothing to do with ${concept}," said ${speaker}, unconvincingly.`,
+    () => `"Where is the ${object}?" asked ${speaker}. ${capitalise(other)} said nothing.`,
+    () => `"Don't bring ${concept} into this," said ${speaker}.`,
+    () => `"I warned you about the ${object}," said ${speaker}.`,
+    () => `"That's not what happened," said ${speaker}. Nobody asked what had happened.`,
+    () => `"Leave the ${object} out of it," said ${speaker}.`,
+    () => `"We agreed never to mention ${concept}," said ${speaker}.`,
+    () => `"Ask ${other}," said ${speaker}. "It was their idea."`,
+    () => `"The ${object} wasn't there yesterday," said ${speaker}.`,
+    () => `"I have never seen that ${object} before in my life," said ${speaker}.`,
+    () => `"This is getting ridiculous," said ${speaker}, somewhat late in the proceedings.`,
+    () => `"Nobody is nationalising anything," said ${speaker}.`,
+    () => `"What exactly are you accusing me of?" asked ${speaker}.`,
+    () => `"Put the ${object} down," said ${speaker}.`,
+    () => `"Not ${place}," said ${speaker}. "Anywhere but there."`,
+    () => `"You said the ${object} had been dealt with," said ${speaker}.`,
+    () => `"I don't trust the ${object}," said ${speaker}.`,
+    () => `"That depends what you mean by ${concept}," said ${speaker}.`,
+    () => `"There are procedures for this," said ${speaker}. Nobody knew what they were.`,
+    () => `"Have you told ${other}?" asked ${speaker}.`,
+    () => `"The ${object} knows too much," said ${speaker}.`,
+    () => `"For the last time, I am not responsible for the ${object}," said ${speaker}.`,
+    () => `"Why is there another ${object}?" asked ${speaker}.`,
+    () => `"If anyone asks, we were never ${place}," said ${speaker}.`,
+    () => `"I blame ${concept}," said ${speaker}.`,
+    () => `"Whatever happens, don't give the ${object} to ${other}," said ${speaker}.`,
+    () => `"You can explain the ${object2}," said ${speaker}.`,
+    () => `"This conversation is over," said ${speaker}. It wasn't.`
+  ];
+
+  return pickFreshTemplate("dialogue", templates);
+}
+
+function generateDescriptionSentence() {
+  const place = getPlace();
+  const object = getObject();
+  const adjective = pick(adjectives);
+  const adjective2 = pick(adjectives);
+  const concept = getConcept();
+
+  const templates = [
+    () => `${capitalise(place)} everything appeared normal, apart from the ${adjective} ${object}.`,
+    () => `The ${object} had been there for some time, though nobody could agree how long.`,
+    () => `Nothing ${place} suggested that ${concept} was about to become a problem.`,
+    () => `It was an ordinary afternoon, except for the ${object}.`,
+    () => `The ${object} stood in silence, looking considerably more ${adjective} than circumstances required.`,
+    () => `For several minutes nothing happened ${place}. This was generally considered suspicious.`,
+    () => `A ${adjective} ${object} occupied the sort of position normally reserved for municipal notices.`,
+    () => `The light ${place} did nothing to improve the appearance of the ${object}.`,
+    () => `By then the ${object} had acquired an air of permanence.`,
+    () => `The ${object} looked harmless enough, which was perhaps the first mistake.`,
+    () => `There was no obvious reason for the ${object} to be ${place}.`,
+    () => `Someone had moved the ${object}. Nobody admitted doing it.`,
+    () => `The ${adjective} ${object} remained exactly where it was.`,
+    () => `Apart from a ${adjective} ${object}, the area ${place} was deserted.`,
+    () => `The atmosphere ${place} was tense, although the ${object} appeared indifferent.`,
+    () => `Nothing moved except the ${object}, and even that was debatable.`,
+    () => `The ${object} seemed smaller in daylight and considerably less trustworthy.`,
+    () => `A smell of administrative failure hung ${place}.`,
+    () => `The ${object} and the ${adjective2} surroundings appeared to have reached an understanding.`,
+    () => `By evening, nobody could remember whether the ${object} had always been there.`,
+    () => `There were signs of recent activity ${place}, most of them unhelpful.`,
+    () => `The ${object} occupied the scene with unnecessary confidence.`,
+    () => `For reasons of its own, the ${object} appeared unwilling to leave.`,
+    () => `The situation ${place} had deteriorated without becoming noticeably more interesting.`
+  ];
+
+  return pickFreshTemplate("description", templates);
+}
+
+function generateNarratorSentence() {
+  const subject = getCharacter();
+  const other = getCharacter();
+  const object = getObject();
+  const concept = getConcept();
+  const place = getPlace();
+
+  const templates = [
+    () => `Nobody knew precisely when the ${object} had become important. By then it seemed impolite to ask.`,
+    () => `In retrospect, ${subject} should probably have taken the ${object} more seriously.`,
+    () => `There were several explanations for this, none of them particularly convincing.`,
+    () => `This was not the first difficulty involving ${concept}, and nobody believed it would be the last.`,
+    () => `For a while everyone behaved as though this were perfectly normal.`,
+    () => `The matter might have ended there, had it not been for the ${object}.`,
+    () => `Later, people would disagree about what ${subject} had actually meant.`,
+    () => `No official explanation was offered, which only improved the situation temporarily.`,
+    () => `Nobody was prepared to accept responsibility, least of all ${subject}.`,
+    () => `This raised several questions and answered none of them.`,
+    () => `By then, common sense had ceased to be especially useful.`,
+    () => `What followed was later described as avoidable.`,
+    () => `The distinction between ${concept} and complete nonsense was becoming difficult to maintain.`,
+    () => `There are moments when a sensible person walks away. ${capitalise(subject)} remained.`,
+    () => `Nobody had invited the ${object}, but removing it seemed unnecessarily provocative.`,
+    () => `The council would later deny all knowledge of the matter.`,
+    () => `At the time, this seemed less important than it subsequently became.`,
+    () => `Nobody could remember who had first mentioned ${concept}.`,
+    () => `${capitalise(subject)} had the uncomfortable feeling that this had happened before.`,
+    () => `The official version of events contained fewer ${object}s.`,
+    () => `It is possible that ${subject} misunderstood the situation. This explanation satisfied nobody.`,
+    () => `A meeting was suggested and immediately regretted.`,
+    () => `For administrative purposes, the incident was treated as somebody else's problem.`,
+    () => `By lunchtime, three incompatible versions of events were circulating.`,
+    () => `Nobody objected, largely because nobody understood what was being proposed.`,
+    () => `The consequences were not immediately apparent, which was fortunate.`,
+    () => `This was the point at which ${subject} stopped finding the situation amusing.`,
+    () => `Whatever ${other} knew, they had no intention of making things easier.`,
+    () => `The facts were straightforward. Their relationship to reality was less certain.`,
+    () => `There was, technically, no rule against it.`,
+    () => `Nobody had planned to involve ${concept}.`,
+    () => `The problem with the ${object} was not its presence but the growing suspicion that it belonged there.`,
+    () => `Had anyone been keeping minutes, they would have been useless.`,
+    () => `By local standards, events ${place} were proceeding almost normally.`,
+    () => `Several people later claimed to have predicted this. None had mentioned it beforehand.`,
+    () => `${capitalise(subject)} considered leaving. The ${object} complicated matters.`,
+    () => `For reasons that would remain obscure, everyone trusted ${other} slightly less after this.`,
+    () => `Nothing about the situation improved with explanation.`,
+    () => `It was becoming clear that ${concept} had been badly organised.`,
+    () => `Nobody said anything for a while. This was the most productive part of the discussion.`
+  ];
+
+  return pickFreshTemplate("narrator", templates);
+}
+
+function generateSituationistSentence() {
+  const subject = getCharacter(), other = getCharacter(), object = getObject(), concept = getConcept(), place = getPlace();
+  const templates = [
+    () => `The spectacle had absorbed the ${object} so completely that nobody could remember what it had originally been for.`,
+    () => `${capitalise(concept)} survived mainly as a collection of instructions nobody remembered agreeing to.`,
+    () => `The problem was no longer the ${object}, but the arrangement of everyday life that made the ${object} seem inevitable.`,
+    () => `${capitalise(subject)} suspected that boredom was not an accident but an administrative achievement.`,
+    () => `Everything ${place} had been organised in advance, including the appearance of spontaneity.`,
+    () => `The ${object} had ceased to be useful and had therefore become socially indispensable.`,
+    () => `${capitalise(subject)} looked at ${other} and briefly understood that the situation had been designed by people who would never have to endure it.`,
+    () => `Nobody owned the confusion, although several departments appeared to be profiting from it.`,
+    () => `The ordinary misery of ${concept} had acquired the reassuring appearance of procedure.`,
+    () => `For a moment ${place}, everyday life revealed itself as an elaborate practical joke with no identifiable author.`,
+    () => `The ${object} was merely the visible part of a much larger arrangement nobody had voted for.`,
+    () => `It was difficult to revolt against ${concept} while everyone was still waiting for the correct form.`
+  ];
+  return pickFreshTemplate("situationist", templates);
+}
+
+function generateBodilySentence() {
+  const subject = getCharacter(), object = getObject(), concept = getConcept(), place = getPlace();
+  const templates = [
+    () => `${capitalise(subject)} was hungry, tired and in no mood to pretend that ${concept} amounted to anything.`,
+    () => `The body had its own opinion of events, most of it involving sweat, hunger and an urgent desire to leave.`,
+    () => `${capitalise(subject)} scratched, swore and considered the ${object} with the exhausted contempt normally reserved for official correspondence.`,
+    () => `There was something indecently alive about the air ${place}, despite every effort to organise it.`,
+    () => `The smell ${place} suggested beer, damp clothing and the slow collapse of respectable intentions.`,
+    () => `${capitalise(subject)} wanted food, sleep and five minutes without somebody explaining ${concept}.`,
+    () => `Whatever theory said, the immediate facts were a dry mouth, bad temper and the ${object}.`,
+    () => `The afternoon had the stale physical quality of a room in which too many people had been arguing for too long.`,
+    () => `${capitalise(subject)} felt suddenly and magnificently uninterested in behaving properly.`,
+    () => `Underneath the talk of ${concept}, everybody still had a stomach, a bladder and somewhere else they would rather be.`
+  ];
+  return pickFreshTemplate("bodily", templates);
+}
+
+function generateSentence() {
+
+  sentenceNumber++;
+  updatePlotStage();
+  ageCharacterStates();
+  ageLocalFocus();
+
+  // Plot pressure rises as the novel advances. Early on it merely mutters;
+  // by the aftermath it has enough persistence to actually finish the bloody thing.
+  const plotChanceByStage = { 1: 7, 2: 9, 3: 11, 4: 14, 5: 22 };
+  if (plot.protagonist && !plot.complete && chance(plotChanceByStage[plot.stage])) {
+    let plotSentence = generatePlotSentence();
+
+    if (plotSentence) {
+      if (story.length > 2 && chance(22)) {
+        plotSentence = pick(transitions) + ", " + lowerFirst(plotSentence);
+      }
+
+      return plotSentence;
+    }
+  }
+
+  // In the final acts, ordinary callbacks retreat slightly so the concealed plot can resolve.
+  const callbackScale = plot.stage >= 4 ? 0.55 : 1;
+
+  // Very occasionally remember a character's current absurd condition.
+  if (Object.keys(characterState).length > 0 && chance(3 * callbackScale)) {
+    const stateCallback = generateStateCallback();
+    if (stateCallback) return stateCallback;
+  }
+
+  // Occasionally recall something that genuinely happened earlier.
+  if (eventMemory.length > 0 && chance(6 * callbackScale)) {
+    const callback = generateCallbackSentence();
+    if (callback) return callback;
+  }
+
+  // Change register occasionally while preserving the original generator.
+  const proseRoll = Math.random();
+  if (proseRoll < 0.10) return generateDialogueSentence();
+  if (proseRoll < 0.20) return generateDescriptionSentence();
+  if (proseRoll < 0.30) return generateNarratorSentence();
+  if (proseRoll < 0.36) return generateSituationistSentence();
+  if (proseRoll < 0.40) return generateBodilySentence();
+
+  const subject = getCharacter();
+  const object = getObject();
+  const adjective = pick(adjectives);
+  const adjective2 = pick(adjectives);
+  const adverb = pick(adverbs);
+  const verb = pick(verbs);
+  const place = getPlace();
+  const concept = getConcept();
+
+  const templates = [
+
+    () => {
+      rememberEvent(subject, verb, object, place);
+      return `${capitalise(subject)} ${adverb} ${verb} the ${adjective} ${object} ${place}.`;
+    },
+
+    () =>
+      `Nobody expected ${subject} to ${baseVerb()} ${concept}.`,
+
+    () => {
+      rememberEvent(subject, verb, object, place);
+      return `The ${adjective} ${subject} ${verb} the ${adjective2} ${object} ${place}.`;
+    },
+
+    () => {
+      rememberEvent(subject, "became", object, "", "object", 2);
+      if (names.includes(subject)) rememberState(subject, `${adjective} ${object}`);
+      return `${capitalise(subject)} has accidentally become ${article(adjective)} ${adjective} ${object}.`;
+    },
+
+    () =>
+      `${capitalise(concept)} has been ruined by ${article(adjective)} ${adjective} ${object}.`,
+
+    () =>
+      `${capitalise(subject)} refuses to acknowledge the ${adjective} ${object}.`,
+
+    () => {
+      rememberEvent(subject, "declared war on", concept, "", "concept", 3);
+      return `${capitalise(subject)} has declared war on ${concept}.`;
+    },
+
+    () =>
+      `Why is ${subject} ${adverb} arguing with the ${object}?`,
+
+    () =>
+      `${capitalise(subject)} says the ${adjective} ${object} can fuck off.`,
+
+    () =>
+      `There is ${article(adjective)} ${adjective} ${object} ${place}, and nobody seems particularly concerned.`,
+
+    () =>
+      `${capitalise(subject)} remembers the ${object}, although nobody else does.`,
+
+    () =>
+      `The ${object} has returned, considerably more ${adjective} than before.`,
+
+    () =>
+      `${capitalise(subject)} begins to suspect that ${concept} is somehow connected to the ${object}.`,
+
+    () =>
+      `For the second time that day, ${subject} encounters the ${adjective} ${object} ${place}.`,
+
+    () =>
+      `${capitalise(subject)} wishes the ${object} would stop talking about ${concept}.`
+  ];
+
+  let sentence = pick(templates)();
+
+  if (story.length > 2 && chance(28)) {
+    sentence = pick(transitions) + ", " + lowerFirst(sentence);
+  }
+
+  return sentence;
+}
+
+function baseVerb() {
+  return pick([
+    "destroy",
+    "question",
+    "ignore",
+    "betray",
+    "nationalise",
+    "insult",
+    "confuse",
+    "abandon",
+    "ruin",
+    "worship",
+    "challenge",
+    "investigate"
+  ]);
+}
+
+function capitalise(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function lowerFirst(text) {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+function continueStory() {
+
+  if (plot.complete && plot.endShown) {
+    return;
+  }
+
+  let paragraph = [];
+  let reachedEnd = false;
+
+  const sentenceCount = Math.floor(Math.random() * 3) + 2;
+
+  for (let i = 0; i < sentenceCount; i++) {
+    let sentence = generateSentence();
+
+    if (sentence.includes("[[STORY_END]]")) {
+      sentence = sentence.replace("[[STORY_END]]", "").trim();
+      paragraph.push(sentence);
+      reachedEnd = true;
+      break;
+    }
+
+    paragraph.push(sentence);
+  }
+
+  if (paragraph.length) {
+    story.push(paragraph.join(" "));
+  }
+
+  if (reachedEnd) {
+    story.push("END");
+  }
+
+  displayStory();
+}
+
+function displayStory() {
+
+  const storyDiv = document.getElementById("story");
+  storyDiv.innerHTML = "";
+
+  story.forEach(paragraph => {
+    const p = document.createElement("p");
+    p.textContent = paragraph;
+
+    if (paragraph === "END") {
+      p.style.textAlign = "center";
+      p.style.fontWeight = "bold";
+      p.style.fontSize = "1.8rem";
+      p.style.marginTop = "2em";
+    }
+
+    storyDiv.appendChild(p);
+  });
+
+  const continueButton = document.querySelector('button[onclick="continueStory()"]');
+
+  if (continueButton) {
+    if (plot.complete && plot.endShown) {
+      continueButton.disabled = true;
+      continueButton.textContent = "Story complete";
+    } else {
+      continueButton.disabled = false;
+      continueButton.textContent = "Continue the story";
+    }
+  }
+
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: "smooth"
+  });
+}
+
+
+function storyAsText() {
+  return story.join("\n\n");
+}
+
+async function copyStory() {
+  const text = storyAsText();
+
+  try {
+    await navigator.clipboard.writeText(text);
+    alert("Disaster copied to clipboard.");
+  } catch (err) {
+    const box = document.createElement("textarea");
+    box.value = text;
+    document.body.appendChild(box);
+    box.select();
+    document.execCommand("copy");
+    box.remove();
+    alert("Disaster copied to clipboard.");
+  }
+}
+
+function downloadStory() {
+  const text = storyAsText();
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "random-novel-disaster.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  URL.revokeObjectURL(url);
+}
+
+function newStory() {
+
+  story = [];
+
+  memory = {
+    characters: [],
+    objects: [],
+    places: [],
+    concepts: []
+  };
+
+  sentenceNumber = 0;
+  eventMemory = [];
+  characterState = {};
+  localFocus = { subjects: [], objects: [], places: [], remaining: 0 };
+  proseMemory = {
+    dialogue: [],
+    description: [],
+    narrator: [],
+    situationist: [],
+    bodily: []
+  };
+  resetPlot();
+
+  continueStory();
+}
+
+newStory();
+
+</script>
+
+</body>
+</html>
