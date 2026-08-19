@@ -47,8 +47,20 @@ const pixels = image.data;
    Change these two numbers for completely
    different Julia sets.
 */
-const cReal = -0.74543;
-const cImag = 0.11301;
+let t = 0;
+
+function animate() {
+  const cReal = -0.7 + 0.2 * Math.cos(t);
+  const cImag =  0.2 * Math.sin(t);
+
+  drawJulia(cReal, cImag);
+
+  t += 0.01;
+
+  requestAnimationFrame(animate);
+}
+
+animate();
 
 const maxIterations = 180;
 
