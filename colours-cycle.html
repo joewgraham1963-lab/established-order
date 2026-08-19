@@ -1,1 +1,56 @@
-col
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All the Colours</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      font-size: 2rem;
+    }
+
+    #hex {
+      background: rgba(255,255,255,0.65);
+      padding: 10px 16px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="hex">#000000</div>
+
+  <script>
+    let colour = 0;
+
+    function nextColour() {
+      colour += 5000;
+
+      if (colour > 0xFFFFFF) {
+        colour = 0;
+      }
+
+      const hex =
+        "#" + colour.toString(16).padStart(6, "0");
+
+      document.body.style.backgroundColor = hex;
+      document.getElementById("hex").textContent = hex;
+
+      requestAnimationFrame(nextColour);
+    }
+
+    nextColour();
+  </script>
+</body>
+</html>
