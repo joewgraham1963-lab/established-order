@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Julia Set II</title>
+  <title>Animated Julia Set</title>
 
   <style>
     html, body {
@@ -15,23 +15,31 @@
     }
 
     h1 {
-      margin: 16px 0 8px;
+      margin: 14px 0 8px;
     }
 
     canvas {
       display: block;
-      margin: 0 auto 20px;
-      max-width: 100%;
+      margin: 0 auto 12px;
+      width: min(92vw, 500px);
+      height: auto;
       background: black;
+    }
+
+    #info {
+      margin-bottom: 20px;
+      font-size: 14px;
     }
   </style>
 </head>
 
 <body>
 
-<h1>Julia Set II</h1>
+<h1>Animated Julia Set</h1>
 
-<canvas id="julia" width="700" height="700"></canvas>
+<canvas id="julia" width="400" height="400"></canvas>
+
+<div id="info"></div>
 
 <script>
 const canvas = document.getElementById("julia");
@@ -43,86 +51,99 @@ const height = canvas.height;
 const image = ctx.createImageData(width, height);
 const pixels = image.data;
 
-/*
-   Change these two numbers for completely
-   different Julia sets.
-*/
+const maxIterations = 90;
+
 let t = 0;
 
+function drawJulia(cReal, cImag) {
+
+  for (let py = 0; py < height; py++) {
+
+    for (let px = 0; px < width; px++) {
+
+      let x =
+        (px - width / 2) /
+        (0.32 * width);
+
+      let y =
+        (py - height / 2) /
+        (0.32 * height);
+
+      let iteration = 0;
+
+      while (
+        x * x + y * y <= 4 &&
+        iteration < maxIterations
+      ) {
+
+        const xNew =
+          x * x - y * y + cReal;
+
+        y =
+          2 * x * y + cImag;
+
+        x = xNew;
+
+        iteration++;
+      }
+
+      const index =
+        (py * width + px) * 4;
+
+      if (iteration === maxIterations) {
+
+        pixels[index] = 0;
+        pixels[index + 1] = 0;
+        pixels[index + 2] = 0;
+
+      } else {
+
+        const shade =
+          Math.floor(
+            255 * iteration / maxIterations
+          );
+
+        pixels[index] =
+          (shade * 3) % 255;
+
+        pixels[index + 1] =
+          255 - shade;
+
+        pixels[index + 2] =
+          (shade * 2) % 255;
+      }
+
+      pixels[index + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
+}
+
 function animate() {
-  const cReal = -0.7 + 0.2 * Math.cos(t);
-  const cImag =  0.2 * Math.sin(t);
+
+  const cReal =
+    -0.7 + 0.18 * Math.cos(t);
+
+  const cImag =
+    0.22 * Math.sin(t * 0.83);
 
   drawJulia(cReal, cImag);
 
-  t += 0.01;
+  document.getElementById("info").textContent =
+    "c = " +
+    cReal.toFixed(4) +
+    " + " +
+    cImag.toFixed(4) +
+    "i";
+
+  t += 0.012;
 
   requestAnimationFrame(animate);
 }
 
 animate();
-
-const maxIterations = 180;
-
-const zoom = 1.45;
-
-for (let py = 0; py < height; py++) {
-
-  for (let px = 0; px < width; px++) {
-
-    let x =
-      (px - width / 2) /
-      (0.5 * zoom * width);
-
-    let y =
-      (py - height / 2) /
-      (0.5 * zoom * height);
-
-    let iteration = 0;
-
-    while (
-      x * x + y * y <= 4 &&
-      iteration < maxIterations
-    ) {
-
-      const xNew =
-        x * x - y * y + cReal;
-
-      y =
-        2 * x * y + cImag;
-
-      x = xNew;
-
-      iteration++;
-    }
-
-    const index = (py * width + px) * 4;
-
-    if (iteration === maxIterations) {
-
-      pixels[index] = 0;
-      pixels[index + 1] = 0;
-      pixels[index + 2] = 0;
-
-    } else {
-
-      const shade =
-        Math.floor(
-          255 * iteration / maxIterations
-        );
-
-      pixels[index] = shade;
-      pixels[index + 1] = 255 - shade;
-      pixels[index + 2] =
-        (shade * 2) % 255;
-    }
-
-    pixels[index + 3] = 255;
-  }
-}
-
-ctx.putImageData(image, 0, 0);
 </script>
 
 </body>
-</html>
+  </html>
