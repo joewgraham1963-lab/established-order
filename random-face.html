@@ -1,1 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random Face Generator</title>
 
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #848484;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+
+    h1 {
+      margin: 18px 0 10px;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto 18px;
+      width: min(92vw, 600px);
+      height: auto;
+      background: #bdbdbd;
+      border: 2px solid black;
+    }
+
+    button {
+      font-size: 24px;
+      padding: 16px 28px;
+      border-radius: 18px;
+      border: 2px solid black;
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Random Face Generator</h1>
+
+<canvas id="face" width="600" height="600"></canvas>
+
+<button onclick="drawFace()">Generate face</button>
+
+<script>
+const canvas = document.getElementById("face");
+const ctx = canvas.getContext("2d");
+
+function random(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function drawFace() {
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const cx = 300;
+  const cy = 300;
+
+  const faceWidth = random(220, 340);
+  const faceHeight = random(280, 420);
+
+  const eyeY = cy - random(40, 90);
+  const eyeSpacing = random(55, 100);
+  const eyeSizeLeft = random(8, 28);
+  const eyeSizeRight = random(8, 28);
+
+  const noseLength = random(35, 90);
+  const mouthWidth = random(70, 170);
+  const mouthCurve = random(-45, 45);
+
+  const earSize = random(25, 65);
+
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "black";
+
+  // Face
+  ctx.beginPath();
+  ctx.ellipse(
+    cx,
+    cy,
+    faceWidth / 2,
+    faceHeight / 2,
+    random(-0.12, 0.12),
+    0,
+    Math.PI * 2
+  );
+  ctx.stroke();
+
+  // Ears
+  ctx.beginPath();
+  ctx.ellipse(
+    cx - faceWidth / 2,
+    cy,
+    earSize / 2,
+    earSize,
+    0,
+    0,
+    Math.PI * 2
+  );
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(
+    cx + faceWidth / 2,
+    cy,
+    earSize / 2,
+    earSize,
+    0,
+    0,
+    Math.PI * 2
+  );
+  ctx.stroke();
+
+  // Eyes
+  ctx.beginPath();
+  ctx.arc(
+    cx - eyeSpacing,
+    eyeY,
+    eyeSizeLeft,
+    0,
+    Math.PI * 2
+  );
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(
+    cx + eyeSpacing,
+    eyeY + random(-15, 15),
+    eyeSizeRight,
+    0,
+    Math.PI * 2
+  );
+  ctx.stroke();
+
+  // Pupils
+  ctx.fillStyle = "black";
+
+  ctx.beginPath();
+  ctx.arc(
+    cx - eyeSpacing + random(-6, 6),
+    eyeY + random(-6, 6),
+    random(3, 8),
+    0,
+    Math.PI * 2
+  );
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(
+    cx + eyeSpacing + random(-6, 6),
+    eyeY + random(-10, 10),
+    random(3, 8),
+    0,
+    Math.PI * 2
+  );
+  ctx.fill();
+
+  // Eyebrows
+  ctx.beginPath();
+  ctx.moveTo(cx - eyeSpacing - 30, eyeY - 35);
+  ctx.lineTo(
+    cx - eyeSpacing + 30,
+    eyeY - 35 + random(-30, 30)
+  );
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(cx + eyeSpacing - 30, eyeY - 35);
+  ctx.lineTo(
+    cx + eyeSpacing + 30,
+    eyeY - 35 + random(-30, 30)
+  );
+  ctx.stroke();
+
+  // Nose
+  ctx.beginPath();
+  ctx.moveTo(cx, eyeY + 20);
+  ctx.lineTo(
+    cx + random(-30, 30),
+    eyeY + noseLength
+  );
+  ctx.lineTo(
+    cx + random(-10, 35),
+    eyeY + noseLength + 10
+  );
+  ctx.stroke();
+
+  // Mouth
+  const mouthY = cy + random(80, 140);
+
+  ctx.beginPath();
+  ctx.moveTo(cx - mouthWidth / 2, mouthY);
+
+  ctx.quadraticCurveTo(
+    cx,
+    mouthY + mouthCurve,
+    cx + mouthWidth / 2,
+    mouthY
+  );
+
+  ctx.stroke();
+
+  // Hair
+  const hairCount = Math.floor(random(5, 25));
+
+  for (let i = 0; i < hairCount; i++) {
+
+    const startX =
+      cx - faceWidth / 2 +
+      random(20, faceWidth - 20);
+
+    const startY =
+      cy - faceHeight / 2 + random(-10, 30);
+
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+
+    ctx.lineTo(
+      startX + random(-30, 30),
+      startY - random(20, 90)
+    );
+
+    ctx.stroke();
+  }
+}
+
+drawFace();
+</script>
+
+</body>
+</html>
