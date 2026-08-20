@@ -49,17 +49,27 @@ const width = canvas.width;
 const height = canvas.height;
 
 let x = 0.1;
-let y = 0.2;
+let y = 0.1;
 
-const a = -1.7;
-const b = 1.8;
+// Starting parameters
+let a = -1.7;
+let b = 1.8;
 const c = -1.2;
 const d = -1.4;
-let time = 0
 
+let time = 0;
 let points = 0;
 
 function plot() {
+
+  // Slowly change two parameters so the attractor morphs.
+  time += 0.002;
+  a = -1.7 + Math.sin(time) * 0.15;
+  b =  1.8 + Math.cos(time * 0.7) * 0.15;
+
+  // Fade the previous image instead of erasing it completely.
+  ctx.fillStyle = "rgba(0, 0, 0, 0.03)";
+  ctx.fillRect(0, 0, width, height);
 
   for (let i = 0; i < 3000; i++) {
 
@@ -92,7 +102,9 @@ function plot() {
   }
 
   document.getElementById("info").textContent =
-    "Points: " + points.toLocaleString();
+    "Points: " + points.toLocaleString() +
+    "   a = " + a.toFixed(3) +
+    "   b = " + b.toFixed(3);
 
   requestAnimationFrame(plot);
 }
