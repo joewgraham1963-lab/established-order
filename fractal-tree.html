@@ -126,7 +126,7 @@ function animate() {
     -0.7 + 0.18 * Math.cos(t);
 
   const cImag =
-    0.22 * Math.sin(t * 0.183);
+    22 * Math.sin(t * 0.183);
 
   drawJulia(cReal, cImag);
 
@@ -137,7 +137,7 @@ function animate() {
     cImag.toFixed(4) +
     "i";
 
-  t += 0.03;
+  t += 0.003;
 
   requestAnimationFrame(animate);
 }
