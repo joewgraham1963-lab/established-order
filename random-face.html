@@ -66,24 +66,27 @@ function drawPortrait() {
   const cx = canvas.width / 2;
   const cy = 335;
 
-  const faceW = rand(220, 285);
-  const faceH = rand(310, 390);
-  const jawW = rand(0.62, 0.82);
-  const templeW = rand(0.88, 1.02);
-  const tilt = rand(-0.045, 0.045);
+  const faceW = rand(205, 305);
+  const faceH = rand(300, 405);
+  const jawW = rand(0.52, 0.88);
+  const templeW = rand(0.84, 1.08);
+  const cheekFullness = rand(0.88, 1.14);
+  const tilt = rand(-0.055, 0.055);
 
-  const eyeY = cy - rand(65, 92);
-  const eyeGap = rand(49, 62);
-  const eyeW = rand(42, 54);
-  const eyeH = rand(12, 18);
+  const eyeY = cy - rand(62, 98);
+  const eyeGap = rand(44, 70);
+  const eyeW = rand(38, 58);
+  const eyeH = rand(10, 20);
 
-  const browY = eyeY - rand(25, 34);
-  const noseTop = eyeY + rand(20, 28);
-  const noseBottom = cy + rand(28, 52);
+  const browY = eyeY - rand(23, 37);
+  const noseTop = eyeY + rand(16, 30);
+  const noseBottom = cy + rand(24, 60);
+  const noseWidth = rand(28, 52);
+  const noseLean = rand(-10, 10);
 
-  const mouthY = cy + rand(85, 112);
-  const mouthW = rand(68, 98);
-  const lipH = rand(8, 14);
+  const mouthY = cy + rand(82, 120);
+  const mouthW = rand(58, 108);
+  const lipH = rand(6, 16);
 
   const skin = pick(["#d2b49a", "#c9a985", "#b98d68", "#9f7457", "#7f5b45"]);
   const skinShadow = pick(["rgba(80,55,40,0.12)", "rgba(60,45,35,0.15)", "rgba(90,65,45,0.10)"]);
@@ -125,10 +128,10 @@ function drawPortrait() {
   ctx.bezierCurveTo(
     cx - faceW * 0.48 * templeW, cy - faceH * 0.47,
     cx - faceW * 0.56, cy - faceH * 0.12,
-    cx - faceW * 0.43, cy + faceH * 0.18
+    cx - faceW * 0.43 * cheekFullness, cy + faceH * 0.18
   );
   ctx.bezierCurveTo(
-    cx - faceW * 0.33, cy + faceH * 0.39,
+    cx - faceW * 0.33 * cheekFullness, cy + faceH * 0.39,
     cx - faceW * jawW * 0.22, cy + faceH * 0.49,
     cx, cy + faceH * 0.51
   );
@@ -207,8 +210,40 @@ function drawPortrait() {
     ctx.stroke();
   }
 
-  eye(cx - eyeGap, eyeY + rand(-2, 2), rand(-1.5, 1.5));
-  eye(cx + eyeGap, eyeY + rand(-2, 2), rand(-1.5, 1.5));
+  eye(
+    cx - eyeGap + rand(-5, 3),
+    eyeY + rand(-4, 3),
+    rand(-2.0, 1.2)
+  );
+  eye(
+    cx + eyeGap + rand(-3, 5),
+    eyeY + rand(-3, 4),
+    rand(-1.2, 2.0)
+  );
+
+  if (chance(0.45)) {
+    ctx.strokeStyle = "rgba(70,55,45,0.18)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(cx - eyeGap, eyeY + eyeH * 1.35, eyeW * 0.32, 0.15, Math.PI - 0.15);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx + eyeGap, eyeY + eyeH * 1.35, eyeW * 0.32, 0.15, Math.PI - 0.15);
+    ctx.stroke();
+  }
+
+  if (chance(0.35)) {
+    ctx.strokeStyle = "rgba(80,55,45,0.16)";
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.moveTo(cx - noseWidth * 0.55, noseBottom + 10);
+    ctx.quadraticCurveTo(cx - 42, mouthY - 12, cx - mouthW * 0.40, mouthY + 6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + noseWidth * 0.55, noseBottom + 10);
+    ctx.quadraticCurveTo(cx + 42, mouthY - 12, cx + mouthW * 0.40, mouthY + 6);
+    ctx.stroke();
+  }
 
   // Brows
   ctx.strokeStyle = hair;
@@ -228,23 +263,35 @@ function drawPortrait() {
   // Nose
   ctx.strokeStyle = "rgba(55,40,30,0.62)";
   ctx.lineWidth = 2;
+
+  const bridgeX = cx + noseLean;
+
   ctx.beginPath();
-  ctx.moveTo(cx - rand(3, 8), noseTop);
+  ctx.moveTo(bridgeX - rand(2, 7), noseTop);
   ctx.bezierCurveTo(
-    cx - rand(8, 14), cy - 10,
-    cx - rand(12, 20), noseBottom - 18,
-    cx - rand(4, 9), noseBottom
+    bridgeX - rand(4, 12), cy - 12,
+    bridgeX - rand(6, 16), noseBottom - 18,
+    bridgeX - rand(2, 7), noseBottom
   );
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.moveTo(cx - rand(18, 25), noseBottom + 2);
-  ctx.quadraticCurveTo(cx, noseBottom + rand(10, 16), cx + rand(18, 25), noseBottom + 2);
+  ctx.moveTo(bridgeX - noseWidth / 2, noseBottom + 2);
+  ctx.quadraticCurveTo(
+    bridgeX,
+    noseBottom + rand(8, 17),
+    bridgeX + noseWidth / 2,
+    noseBottom + 2
+  );
   ctx.stroke();
 
   ctx.fillStyle = "rgba(65,45,30,0.38)";
   ctx.beginPath();
-  ctx.ellipse(cx - rand(10, 16), noseBottom + 3, 3.5, 2.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(bridgeX - noseWidth * 0.28, noseBottom + 3, rand(2.5, 4.2), rand(1.7, 2.8), 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.ellipse(bridgeX + noseWidth * 0.28, noseBottom + 3, rand(2.5, 4.2), rand(1.7, 2.8), 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
   ctx.ellipse(cx + rand(10, 16), noseBottom + 3, 3.5, 2.2, 0, 0, Math.PI * 2);
