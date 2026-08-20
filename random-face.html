@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Random Portrait Sketch V3</title>
+  <title>Random Portrait Sketch V4</title>
   <style>
     html, body {
       margin: 0;
@@ -105,6 +105,27 @@ function drawPortrait() {
   const noseStyle = pick(["straight", "hooked", "broad", "button"]);
   const hairStyle = pick(["short", "swept", "curly", "receding", "none"]);
   const mouthStyle = pick(["neutral", "thin", "full", "smirk"]);
+
+  // Expression and apparent age
+  const expression = pick(["neutral", "friendly", "serious", "tired", "skeptical"]);
+  const age = rand(20, 78);
+  const ageFactor = Math.max(0, Math.min(1, (age - 20) / 58));
+
+  const browLift = {
+    neutral: 0,
+    friendly: -3,
+    serious: 4,
+    tired: 7,
+    skeptical: 0
+  }[expression];
+
+  const mouthMood = {
+    neutral: 0,
+    friendly: 5,
+    serious: -3,
+    tired: -1,
+    skeptical: 2
+  }[expression];
 
   ctx.save();
   ctx.translate(cx, cy);
@@ -228,21 +249,66 @@ function drawPortrait() {
     ctx.stroke();
   }
 
-  drawEye(cx - eyeGap, eyeY + rand(-2, 2), eyeW * rand(0.92, 1.08), eyeH, rand(-1.5, 1.5));
-  drawEye(cx + eyeGap, eyeY + rand(-2, 2), eyeW * rand(0.92, 1.08), eyeH, rand(-1.5, 1.5));
+  const eyeOpen = Math.max(0.72, 1 - ageFactor * 0.18 - (expression === "tired" ? 0.18 : 0));
+  const leftEyeH = eyeH * eyeOpen;
+  const rightEyeH = eyeH * eyeOpen * (expression === "skeptical" ? rand(0.82, 1.02) : rand(0.95, 1.05));
 
-  // Brows
+  drawEye(
+    cx - eyeGap,
+    eyeY + rand(-2, 2),
+    eyeW * rand(0.92, 1.08),
+    leftEyeH,
+    rand(-1.5, 1.5)
+  );
+
+  drawEye(
+    cx + eyeGap,
+    eyeY + rand(-2, 2),
+    eyeW * rand(0.92, 1.08),
+    rightEyeH,
+    rand(-1.5, 1.5)
+  );
+
+  // Under-eye shading grows subtly with age
+  ctx.strokeStyle = `rgba(70,50,40,${0.06 + ageFactor * 0.14})`;
+  ctx.lineWidth = 1.2;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(
+      cx + side * eyeGap,
+      eyeY + eyeH * 1.05,
+      eyeW * 0.32,
+      0.15,
+      Math.PI - 0.15
+    );
+    ctx.stroke();
+  }
+
+  // Brows, with expression
   ctx.strokeStyle = hair;
   ctx.lineWidth = rand(4, 7);
   ctx.lineCap = "round";
+
+  const skepticalRaise = expression === "skeptical" ? rand(7, 13) : 0;
+
   ctx.beginPath();
-  ctx.moveTo(cx - eyeGap - eyeW * 0.48, browY + rand(-2, 4));
-  ctx.quadraticCurveTo(cx - eyeGap, browY - rand(2, 10), cx - eyeGap + eyeW * 0.48, browY + rand(-1, 5));
+  ctx.moveTo(cx - eyeGap - eyeW * 0.48, browY + browLift + rand(-2, 4));
+  ctx.quadraticCurveTo(
+    cx - eyeGap,
+    browY + browLift - rand(2, 10) - skepticalRaise,
+    cx - eyeGap + eyeW * 0.48,
+    browY + browLift + rand(-1, 5)
+  );
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.moveTo(cx + eyeGap - eyeW * 0.48, browY + rand(-1, 5));
-  ctx.quadraticCurveTo(cx + eyeGap, browY - rand(2, 10), cx + eyeGap + eyeW * 0.48, browY + rand(-2, 4));
+  ctx.moveTo(cx + eyeGap - eyeW * 0.48, browY + browLift + rand(-1, 5));
+  ctx.quadraticCurveTo(
+    cx + eyeGap,
+    browY + browLift - rand(2, 10) + skepticalRaise,
+    cx + eyeGap + eyeW * 0.48,
+    browY + browLift + rand(-2, 4)
+  );
   ctx.stroke();
 
   // Nose - several different styles
@@ -336,9 +402,16 @@ function drawPortrait() {
   ctx.stroke();
 
   ctx.beginPath();
-  const curveOffset = mouthStyle === "smirk" ? rand(-4, 5) : rand(-2, 2);
+  let curveOffset = mouthStyle === "smirk" ? rand(-4, 5) : rand(-2, 2);
+  curveOffset += mouthMood;
+
+  const rightCorner =
+    curveOffset +
+    (mouthStyle === "smirk" ? -3 : 0) +
+    (expression === "skeptical" ? rand(-5, 5) : 0);
+
   ctx.moveTo(-mouthW / 2 + 4, 0);
-  ctx.quadraticCurveTo(0, curveOffset, mouthW / 2 - 4, curveOffset + (mouthStyle === "smirk" ? -3 : 0));
+  ctx.quadraticCurveTo(0, curveOffset, mouthW / 2 - 4, rightCorner);
   ctx.stroke();
   ctx.restore();
 
@@ -348,6 +421,50 @@ function drawPortrait() {
   ctx.beginPath();
   ctx.arc(cx, mouthY + 38, rand(16, 30), 0.2, Math.PI - 0.2);
   ctx.stroke();
+
+  // Age detail: subtle rather than theatrical
+  ctx.strokeStyle = "rgba(75,55,45,0.22)";
+  ctx.lineWidth = 1;
+
+  if (age > 42) {
+    const foreheadLines = Math.floor(rand(1, 1 + ageFactor * 4));
+    for (let i = 0; i < foreheadLines; i++) {
+      const fy = cy - faceH * 0.30 + i * 9;
+      ctx.beginPath();
+      ctx.moveTo(cx - faceW * 0.16, fy);
+      ctx.quadraticCurveTo(cx, fy + rand(-3, 3), cx + faceW * 0.16, fy);
+      ctx.stroke();
+    }
+  }
+
+  if (age > 35) {
+    const crow = 2 + Math.floor(ageFactor * 2);
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < crow; i++) {
+        const ex = cx + side * (eyeGap + eyeW * 0.48);
+        const ey = eyeY + i * 5 - 3;
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(ex + side * rand(10, 18), ey + rand(-4, 5));
+        ctx.stroke();
+      }
+    }
+  }
+
+  if (age > 48) {
+    // light nasolabial lines
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(cx + side * rand(18, 25), noseBottom + 12);
+      ctx.quadraticCurveTo(
+        cx + side * rand(30, 42),
+        mouthY - 20,
+        cx + side * rand(34, 48),
+        mouthY + 8
+      );
+      ctx.stroke();
+    }
+  }
 
   // Hair and hairline
   // Hair now follows the scalp instead of floating above it.
