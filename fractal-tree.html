@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chaos Game</title>
+  <title>Fractal Spiral</title>
 
   <style>
     html, body {
       margin: 0;
       padding: 0;
       background: #848484;
-      font-family: Arial, sans-serif;
       text-align: center;
+      font-family: Arial, sans-serif;
     }
 
     h1 {
@@ -20,77 +20,90 @@
 
     canvas {
       display: block;
-      margin: 0 auto 12px;
-      width: min(92vw, 600px);
+      margin: 0 auto 20px;
+      width: min(94vw, 700px);
       height: auto;
       background: #111;
-    }
-
-    #count {
-      margin-bottom: 20px;
     }
   </style>
 </head>
 
 <body>
 
-<h1>Chaos Game</h1>
+<h1>Fractal Spiral</h1>
 
-<canvas id="canvas" width="600" height="600"></canvas>
-
-<div id="count">Points: 0</div>
+<canvas id="spiral" width="700" height="700"></canvas>
 
 <script>
-const canvas = document.getElementById("canvas");
+const canvas = document.getElementById("spiral");
 const ctx = canvas.getContext("2d");
 
-const vertices = [
-  { x: 300, y: 40 },
-  { x: 40, y: 560 },
-  { x: 560, y: 560 }
-];
+const centreX = canvas.width / 2;
+const centreY = canvas.height / 2;
 
-// Draw the three starting corners
-ctx.fillStyle = "white";
+let frame = 0;
 
-for (const v of vertices) {
+function drawBranch(x, y, length, angle, depth) {
+
+  if (depth <= 0 || length < 2) return;
+
+  const endX = x + Math.cos(angle) * length;
+  const endY = y + Math.sin(angle) * length;
+
   ctx.beginPath();
-  ctx.arc(v.x, v.y, 4, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(x, y);
+  ctx.lineTo(endX, endY);
+  ctx.stroke();
+
+  drawBranch(
+    endX,
+    endY,
+    length * 0.76,
+    angle + 0.48,
+    depth - 1
+  );
+
+  drawBranch(
+    endX,
+    endY,
+    length * 0.62,
+    angle - 0.8,
+    depth - 1
+  );
 }
 
-// Start somewhere random
-let x = Math.random() * canvas.width;
-let y = Math.random() * canvas.height;
+function animate() {
 
-let points = 0;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-function draw() {
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "white";
 
-  // Draw several points per animation frame
-  for (let i = 0; i < 60; i++) {
+  const rotation = frame * 0.01;
 
-    const chosen =
-      vertices[
-        Math.floor(Math.random() * vertices.length)
-      ];
+  const arms = 7;
 
-    // Move halfway toward the chosen corner
-    x = (x + chosen.x) / 2;
-    y = (y + chosen.y) / 2;
+  for (let i = 0; i < arms; i++) {
 
-    ctx.fillRect(x, y, 1, 1);
+    const angle =
+      rotation +
+      (Math.PI * 2 / arms) * i;
 
-    points++;
+    drawBranch(
+      centreX,
+      centreY,
+      120,
+      angle,
+      10
+    );
   }
 
-  document.getElementById("count").textContent =
-    "Points: " + points.toLocaleString();
+  frame++;
 
-  requestAnimationFrame(draw);
+  requestAnimationFrame(animate);
 }
 
-draw();
+animate();
 </script>
 
 </body>
