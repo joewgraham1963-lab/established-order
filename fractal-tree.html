@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ikeda Attractor</title>
+  <title>Clifford Attractor</title>
 
   <style>
     html, body {
@@ -23,7 +23,7 @@
       margin: 0 auto 12px;
       width: min(94vw, 700px);
       height: auto;
-      background: #050505;
+      background: black;
     }
 
     #info {
@@ -35,7 +35,7 @@
 
 <body>
 
-<h1>Ikeda Attractor</h1>
+<h1>Clifford Attractor</h1>
 
 <canvas id="canvas" width="600" height="600"></canvas>
 
@@ -51,53 +51,47 @@ const height = canvas.height;
 let x = 0.1;
 let y = 0.1;
 
-let u = 0.95;
+const a = -1.4;
+const b = 1.6;
+const c = 1.0;
+const d = 0.7;
+
 let points = 0;
 
 function plot() {
 
-  for (let i = 0; i < 1200; i++) {
-
-    const t =
-      0.4 -
-      6 /
-      (1 + x * x + y * y);
+  for (let i = 0; i < 3000; i++) {
 
     const nextX =
-      1 +
-      u *
-      (
-        x * Math.cos(t) -
-        y * Math.sin(t)
-      );
+      Math.sin(a * y) +
+      c * Math.cos(a * x);
 
     const nextY =
-      u *
-      (
-        x * Math.sin(t) +
-        y * Math.cos(t)
-      );
+      Math.sin(b * x) +
+      d * Math.cos(b * y);
 
     x = nextX;
     y = nextY;
 
     const px =
-      width / 2 +
-      x * 115;
+      width / 2 + x * 130;
 
     const py =
-      height / 2 -
-      y * 115;
+      height / 2 - y * 130;
 
-ctx.fillStyle = "rgba(255,255,255,0.25)";
-ctx.fillRect(px, py, 1, 1); 
+    const hue =
+      (points * 0.015) % 360;
+
+    ctx.fillStyle =
+      `hsla(${hue}, 100%, 70%, 0.12)`;
+
+    ctx.fillRect(px, py, 1, 1);
 
     points++;
   }
 
   document.getElementById("info").textContent =
-    "Points: " + points.toLocaleString() +
-    "   u = " + u.toFixed(4);
+    "Points: " + points.toLocaleString();
 
   requestAnimationFrame(plot);
 }
