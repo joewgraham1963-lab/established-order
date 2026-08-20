@@ -113,7 +113,7 @@ function drawJulia(cReal, cImag) {
           (shade * 2) % 255;
       }
 
-      pixels[index + 4] = 255;
+      pixels[index + 2] = 255;
     }
   }
 
@@ -137,7 +137,7 @@ function animate() {
     cImag.toFixed(4) +
     "i";
 
-  t += 0.0003;
+  t += 0.003;
 
   requestAnimationFrame(animate);
 }
