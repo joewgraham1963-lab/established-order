@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Animated Julia Set</title>
+  <title>Chaos Game</title>
 
   <style>
     html, body {
       margin: 0;
       padding: 0;
       background: #848484;
-      text-align: center;
       font-family: Arial, sans-serif;
+      text-align: center;
     }
 
     h1 {
@@ -21,128 +21,76 @@
     canvas {
       display: block;
       margin: 0 auto 12px;
-      width: min(92vw, 500px);
+      width: min(92vw, 600px);
       height: auto;
-      background: black;
+      background: #111;
     }
 
-    #info {
+    #count {
       margin-bottom: 20px;
-      font-size: 14px;
     }
   </style>
 </head>
 
 <body>
 
-<h1>Animated Julia Set</h1>
+<h1>Chaos Game</h1>
 
-<canvas id="julia" width="400" height="400"></canvas>
+<canvas id="canvas" width="600" height="600"></canvas>
 
-<div id="info"></div>
+<div id="count">Points: 0</div>
 
 <script>
-const canvas = document.getElementById("julia");
+const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const width = canvas.width;
-const height = canvas.height;
+const vertices = [
+  { x: 300, y: 40 },
+  { x: 40, y: 560 },
+  { x: 560, y: 560 }
+];
 
-const image = ctx.createImageData(width, height);
-const pixels = image.data;
+// Draw the three starting corners
+ctx.fillStyle = "white";
 
-const maxIterations = 90;
+for (const v of vertices) {
+  ctx.beginPath();
+  ctx.arc(v.x, v.y, 4, 0, Math.PI * 2);
+  ctx.fill();
+}
 
-let t = 0;
+// Start somewhere random
+let x = Math.random() * canvas.width;
+let y = Math.random() * canvas.height;
 
-function drawJulia(cReal, cImag) {
+let points = 0;
 
-  for (let py = 0; py < height; py++) {
+function draw() {
 
-    for (let px = 0; px < width; px++) {
+  // Draw several points per animation frame
+  for (let i = 0; i < 60; i++) {
 
-      let x =
-        (px - width / 2) /
-        (0.32 * width);
+    const chosen =
+      vertices[
+        Math.floor(Math.random() * vertices.length)
+      ];
 
-      let y =
-        (py - height / 2) /
-        (0.32 * height);
+    // Move halfway toward the chosen corner
+    x = (x + chosen.x) / 2;
+    y = (y + chosen.y) / 2;
 
-      let iteration = 0;
+    ctx.fillRect(x, y, 1, 1);
 
-      while (
-        x * x + y * y <= 4 &&
-        iteration < maxIterations
-      ) {
-
-        const xNew =
-          x * x - y * y + cReal;
-
-        y =
-          2 * x * y + cImag;
-
-        x = xNew;
-
-        iteration++;
-      }
-
-      const index =
-        (py * width + px) * 4;
-
-      if (iteration === maxIterations) {
-
-        pixels[index] = 0;
-        pixels[index + 1] = 0;
-        pixels[index + 2] = 0;
-
-      } else {
-
-        const shade =
-          Math.floor(
-            255 * iteration / maxIterations
-          );
-
-        pixels[index] =
-          (shade * 3) % 255;
-
-        pixels[index + 1] =
-          255 - shade;
-
-        pixels[index + 2] =
-          (shade * 2) % 255;
-      }
-
-      pixels[index + 3] = 255;
-    }
+    points++;
   }
 
-  ctx.putImageData(image, 0, 0);
+  document.getElementById("count").textContent =
+    "Points: " + points.toLocaleString();
+
+  requestAnimationFrame(draw);
 }
 
-function animate() {
-
-  const cReal =
-    -0.7 + 0.18 * Math.cos(t);
-
-  const cImag =
-    0.22 * Math.sin(t * 0.83);
-
-  drawJulia(cReal, cImag);
-
-  document.getElementById("info").textContent =
-    "c = " +
-    cReal.toFixed(4) +
-    " + " +
-    cImag.toFixed(4) +
-    "i";
-
-  t += 0.0012;
-
-  requestAnimationFrame(animate);
-}
-
-animate();
+draw();
 </script>
 
 </body>
