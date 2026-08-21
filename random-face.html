@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Random Portrait Sketch V5</title>
+  <title>Random Portrait Sketch V6</title>
   <style>
     html, body {
       margin: 0;
@@ -124,6 +124,9 @@ function drawPortrait() {
   const topColor = pick(["#555", "#4c5b6a", "#6a5050", "#4d4d4d", "#5c4d40", "#687063"]);
 
   const lightSide = chance(0.5) ? -1 : 1;
+  const lightStrength = rand(0.08, 0.18);
+  const lightX = cx + lightSide * faceW * rand(0.35, 0.55);
+  const lightY = cy - faceH * rand(0.20, 0.34);
   const eyeAsym = rand(-3.5, 3.5);
   const mouthAsym = rand(-5, 5);
   const noseAsym = rand(-4, 4);
@@ -290,7 +293,7 @@ function drawPortrait() {
 
     ctx.fillStyle = "rgba(255,255,255,0.85)";
     ctx.beginPath();
-    ctx.arc(x + irisOffset + 3, y - 3, 2.2, 0, Math.PI * 2);
+    ctx.arc(x + irisOffset + lightSide * 3, y - 3, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = `rgba(40,30,25,${lowerBags ? 0.32 : 0.12})`;
@@ -303,6 +306,22 @@ function drawPortrait() {
 
   drawEye(cx - eyeGap, eyeY + eyeAsym + rand(-1.5, 1.5), eyeW * rand(0.88, 1.10), eyeH * rand(0.92, 1.06), rand(-1.8, 1.8), "left");
   drawEye(cx + eyeGap, eyeY - eyeAsym + rand(-1.5, 1.5), eyeW * rand(0.88, 1.10), eyeH * rand(0.92, 1.06), rand(-1.8, 1.8), "right");
+
+  // Eye socket shading
+  ctx.fillStyle = "rgba(45,30,25,0.07)";
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(
+      cx + side * eyeGap,
+      eyeY + eyeH * 0.45,
+      eyeW * 0.62,
+      eyeH * 1.3,
+      side * 0.04,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+  }
 
   // Brows with expression
   const browRaise = expression === "tired" ? 3 : expression === "smile" ? 1 : expression === "stern" ? -2 : 0;
@@ -388,6 +407,35 @@ function drawPortrait() {
   ctx.fill();
   ctx.beginPath();
   ctx.ellipse(cx + rand(9, 15) + noseAsym * 0.25, noseBottom + 3, rand(2.6, 4.2), rand(1.8, 2.7), 0, 0, Math.PI * 2);
+  ctx.fill();
+
+
+  // Directional nose shadow
+  const noseShadowSide = -lightSide;
+  const noseShadow = ctx.createLinearGradient(
+    cx,
+    noseTop,
+    cx + noseShadowSide * 42,
+    noseBottom + 22
+  );
+  noseShadow.addColorStop(0, "rgba(70,45,30,0)");
+  noseShadow.addColorStop(1, `rgba(70,45,30,${lightStrength})`);
+  ctx.fillStyle = noseShadow;
+  ctx.beginPath();
+  ctx.moveTo(cx + noseAsym, noseTop + 5);
+  ctx.quadraticCurveTo(
+    cx + noseShadowSide * rand(14, 23),
+    (noseTop + noseBottom) / 2,
+    cx + noseShadowSide * rand(18, 30),
+    noseBottom + 18
+  );
+  ctx.quadraticCurveTo(
+    cx + noseShadowSide * rand(6, 12),
+    noseBottom + 10,
+    cx + noseAsym,
+    noseTop + 5
+  );
+  ctx.closePath();
   ctx.fill();
 
   // Mouth / expression
@@ -477,6 +525,26 @@ function drawPortrait() {
     }
   }
 
+  // Cheekbone highlights and opposing shadows
+  for (const side of [-1, 1]) {
+    const lit = side === lightSide;
+    ctx.fillStyle = lit
+      ? "rgba(255,255,255,0.055)"
+      : `rgba(60,40,30,${lightStrength * 0.6})`;
+
+    ctx.beginPath();
+    ctx.ellipse(
+      cx + side * faceW * 0.25,
+      cy + 8,
+      faceW * 0.11,
+      faceH * 0.075,
+      side * -0.20,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+  }
+
   // Subtle lower-face shadow to give the mouth and jaw more depth
   const jawShade = ctx.createLinearGradient(cx, mouthY, cx, cy + faceH * 0.48);
   jawShade.addColorStop(0, "rgba(0,0,0,0)");
@@ -484,6 +552,39 @@ function drawPortrait() {
   ctx.fillStyle = jawShade;
   ctx.beginPath();
   ctx.ellipse(cx, cy + faceH * 0.27, faceW * 0.30, faceH * 0.18, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Jaw-edge shadow opposite the light
+  ctx.strokeStyle = `rgba(45,30,22,${lightStrength * 0.7})`;
+  ctx.lineWidth = rand(3, 5);
+  ctx.beginPath();
+  if (lightSide > 0) {
+    ctx.arc(cx, cy + faceH * 0.04, faceW * 0.39, Math.PI * 0.58, Math.PI * 0.93);
+  } else {
+    ctx.arc(cx, cy + faceH * 0.04, faceW * 0.39, Math.PI * 0.07, Math.PI * 0.42);
+  }
+  ctx.stroke();
+
+  // Neck shadow under the chin
+  const neckShadow = ctx.createLinearGradient(
+    cx,
+    cy + faceH * 0.31,
+    cx,
+    cy + faceH * 0.46
+  );
+  neckShadow.addColorStop(0, `rgba(50,30,20,${lightStrength * 0.95})`);
+  neckShadow.addColorStop(1, "rgba(50,30,20,0)");
+  ctx.fillStyle = neckShadow;
+  ctx.beginPath();
+  ctx.ellipse(
+    cx,
+    cy + faceH * 0.38,
+    neckW * 0.48,
+    faceH * 0.07,
+    0,
+    0,
+    Math.PI * 2
+  );
   ctx.fill();
 
   // Hair and hairline
@@ -652,7 +753,7 @@ function drawPortrait() {
     ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1, 1);
   }
 
-  info.textContent = "Age: " + age + " | Expression: " + expression;
+  info.textContent = "Age: " + age + " | Expression: " + expression + " | Light: " + (lightSide < 0 ? "left" : "right");
 }
 
 document.getElementById("generate").addEventListener("click", drawPortrait);
