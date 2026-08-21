@@ -1,1 +1,160 @@
-pe
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peter de Jong Attractor</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #848484;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+    h1 { margin: 14px 0 8px; }
+    canvas {
+      display: block;
+      margin: 0 auto 12px;
+      width: min(94vw, 700px);
+      height: auto;
+      background: black;
+      box-shadow: 0 0 30px rgba(255,255,255,0.08);
+      touch-action: manipulation;
+    }
+    #info { margin-bottom: 8px; font-size: 14px; }
+    #hint { margin-bottom: 16px; font-size: 13px; opacity: 0.75; }
+    button {
+      font-size: 18px;
+      padding: 10px 18px;
+      border: 2px solid #111;
+      border-radius: 14px;
+      margin: 0 5px 18px;
+      background: #eee;
+    }
+  </style>
+</head>
+<body>
+<h1>Peter de Jong Attractor</h1>
+<canvas id="canvas" width="600" height="600"></canvas>
+<div id="info">Chaos accumulating...</div>
+<div id="hint">Tap the attractor or press “Mutate” to generate a new creature.</div>
+<button id="mutate">Mutate</button>
+<button id="clear">Clear trails</button>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const width = canvas.width;
+const height = canvas.height;
+
+let x = 0.1;
+let y = 0.1;
+
+let baseA = 1.4;
+let baseB = -2.3;
+let baseC = 2.4;
+let baseD = -2.1;
+
+let a = baseA;
+let b = baseB;
+let c = baseC;
+let d = baseD;
+
+let time = 0;
+let points = 0;
+let palette = Math.random() * 360;
+let rotation = 0;
+let pulse = 0;
+
+function random(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function mutate() {
+  baseA = random(-3, 3);
+  baseB = random(-3, 3);
+  baseC = random(-3, 3);
+  baseD = random(-3, 3);
+  x = random(-0.2, 0.2);
+  y = random(-0.2, 0.2);
+  palette = Math.random() * 360;
+  ctx.fillStyle = "rgba(0,0,0,0.86)";
+  ctx.fillRect(0, 0, width, height);
+}
+
+function clearTrails() {
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, width, height);
+}
+
+function plot() {
+  time += 0.006;
+
+  a = baseA + Math.sin(time * 0.93) * 0.08;
+  b = baseB + Math.cos(time * 0.71) * 0.08;
+  c = baseC + Math.sin(time * 0.51) * 0.08;
+  d = baseD + Math.cos(time * 0.37) * 0.08;
+
+  palette = (palette + 0.07) % 360;
+  rotation += 0.0007;
+  pulse += 0.01;
+
+  const zoom = 135 + Math.sin(pulse) * 8;
+  const cosR = Math.cos(rotation);
+  const sinR = Math.sin(rotation);
+
+  ctx.fillStyle = "rgba(0,0,0,0.032)";
+  ctx.fillRect(0, 0, width, height);
+
+  for (let i = 0; i < 4000; i++) {
+    const nextX = Math.sin(a * y) - Math.cos(b * x);
+    const nextY = Math.sin(c * x) - Math.cos(d * y);
+
+    x = nextX;
+    y = nextY;
+
+    const rx = x * cosR - y * sinR;
+    const ry = x * sinR + y * cosR;
+
+    const px = width / 2 + rx * zoom;
+    const py = height / 2 - ry * zoom;
+
+    if (px < 0 || px >= width || py < 0 || py >= height) continue;
+
+    const hue =
+      (palette + x * 90 + y * 60 + Math.sin(points * 0.00035) * 70) % 360;
+
+    ctx.fillStyle = `hsla(${hue}, 100%, 55%, 0.045)`;
+    ctx.fillRect(px - 1, py - 1, 3, 3);
+
+    ctx.fillStyle = `hsla(${hue + 28}, 100%, 72%, 0.23)`;
+    ctx.fillRect(px, py, 1, 1);
+
+    points++;
+  }
+
+  document.getElementById("info").textContent =
+    "Points: " + points.toLocaleString() +
+    "   a=" + a.toFixed(3) +
+    "   b=" + b.toFixed(3) +
+    "   c=" + c.toFixed(3) +
+    "   d=" + d.toFixed(3);
+
+  requestAnimationFrame(plot);
+}
+
+canvas.addEventListener("click", mutate);
+canvas.addEventListener("touchend", function(e) {
+  e.preventDefault();
+  mutate();
+}, { passive: false });
+
+document.getElementById("mutate").addEventListener("click", mutate);
+document.getElementById("clear").addEventListener("click", clearTrails);
+
+clearTrails();
+plot();
+</script>
+</body>
+</html>
