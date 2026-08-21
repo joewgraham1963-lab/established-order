@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Random Portrait Sketch V6</title>
+  <title>Random Portrait Sketch V7</title>
   <style>
     html, body {
       margin: 0;
@@ -124,9 +124,7 @@ function drawPortrait() {
   const topColor = pick(["#555", "#4c5b6a", "#6a5050", "#4d4d4d", "#5c4d40", "#687063"]);
 
   const lightSide = chance(0.5) ? -1 : 1;
-  const lightStrength = rand(0.08, 0.18);
-  const lightX = cx + lightSide * faceW * rand(0.35, 0.55);
-  const lightY = cy - faceH * rand(0.20, 0.34);
+  const lightLabel = lightSide < 0 ? "left" : "right";
   const eyeAsym = rand(-3.5, 3.5);
   const mouthAsym = rand(-5, 5);
   const noseAsym = rand(-4, 4);
@@ -144,25 +142,75 @@ function drawPortrait() {
   ctx.rotate(tilt);
   ctx.translate(-cx, -cy);
 
-  // Neck
+  // Tapered neck
   ctx.fillStyle = skin;
+  const neckTopY = cy + faceH * 0.33;
+  const neckBottomY = shoulderHeight + 4;
+  const neckTopW = neckW * rand(0.78, 0.92);
+  const neckBottomW = neckW * rand(1.00, 1.18);
+
   ctx.beginPath();
-  ctx.moveTo(cx - neckW / 2, cy + faceH * 0.34);
-  ctx.lineTo(cx - neckW * 0.58, shoulderHeight);
-  ctx.lineTo(cx + neckW * 0.58, shoulderHeight);
-  ctx.lineTo(cx + neckW / 2, cy + faceH * 0.34);
+  ctx.moveTo(cx - neckTopW / 2, neckTopY);
+  ctx.bezierCurveTo(
+    cx - neckTopW / 2 - 4, neckTopY + 45,
+    cx - neckBottomW / 2, neckBottomY - 25,
+    cx - neckBottomW / 2, neckBottomY
+  );
+  ctx.lineTo(cx + neckBottomW / 2, neckBottomY);
+  ctx.bezierCurveTo(
+    cx + neckBottomW / 2, neckBottomY - 25,
+    cx + neckTopW / 2 + 4, neckTopY + 45,
+    cx + neckTopW / 2, neckTopY
+  );
   ctx.closePath();
   ctx.fill();
 
-  // Clothing / shoulders
+  // Subtle neck side shadows
+  const neckGrad = ctx.createLinearGradient(
+    cx - neckBottomW / 2, neckTopY,
+    cx + neckBottomW / 2, neckTopY
+  );
+  if (lightSide < 0) {
+    neckGrad.addColorStop(0, "rgba(0,0,0,0.11)");
+    neckGrad.addColorStop(0.55, "rgba(0,0,0,0)");
+    neckGrad.addColorStop(1, "rgba(255,255,255,0.025)");
+  } else {
+    neckGrad.addColorStop(0, "rgba(255,255,255,0.025)");
+    neckGrad.addColorStop(0.45, "rgba(0,0,0,0)");
+    neckGrad.addColorStop(1, "rgba(0,0,0,0.11)");
+  }
+  ctx.fillStyle = neckGrad;
+  ctx.fillRect(cx - neckBottomW / 2, neckTopY, neckBottomW, neckBottomY - neckTopY);
+
+  // Clothing / shoulders with softer anatomy
   ctx.fillStyle = topColor;
   ctx.beginPath();
-  ctx.moveTo(90, 720);
-  ctx.quadraticCurveTo(cx - 120, shoulderHeight - 35, cx - neckW * 0.55, shoulderHeight - 8);
-  ctx.lineTo(cx + neckW * 0.55, shoulderHeight - 8);
-  ctx.quadraticCurveTo(cx + 120, shoulderHeight - 35, 530, 720);
+  ctx.moveTo(70, 720);
+  ctx.bezierCurveTo(
+    cx - 165, shoulderHeight - 18,
+    cx - 105, shoulderHeight - 42,
+    cx - neckBottomW * 0.58, shoulderHeight - 4
+  );
+  ctx.quadraticCurveTo(cx, shoulderHeight + 16, cx + neckBottomW * 0.58, shoulderHeight - 4);
+  ctx.bezierCurveTo(
+    cx + 105, shoulderHeight - 42,
+    cx + 165, shoulderHeight - 18,
+    550, 720
+  );
   ctx.closePath();
   ctx.fill();
+
+  // Collarbone suggestions
+  ctx.strokeStyle = "rgba(70,50,40,0.20)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(cx - neckBottomW * 0.42, shoulderHeight - 10);
+  ctx.quadraticCurveTo(cx - 45, shoulderHeight + 4, cx - 12, shoulderHeight + 10);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx + neckBottomW * 0.42, shoulderHeight - 10);
+  ctx.quadraticCurveTo(cx + 45, shoulderHeight + 4, cx + 12, shoulderHeight + 10);
+  ctx.stroke();
 
   // Head outline
   ctx.fillStyle = skin;
@@ -236,6 +284,40 @@ function drawPortrait() {
   ctx.ellipse(cx, cy, faceW * 0.47, faceH * 0.48, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  // Stronger lighting model: forehead/cheek highlights and temple shadow
+  const foreheadHighlight = ctx.createRadialGradient(
+    cx + lightSide * faceW * 0.12, cy - faceH * 0.22, 4,
+    cx + lightSide * faceW * 0.12, cy - faceH * 0.22, faceW * 0.22
+  );
+  foreheadHighlight.addColorStop(0, "rgba(255,255,255,0.16)");
+  foreheadHighlight.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = foreheadHighlight;
+  ctx.beginPath();
+  ctx.ellipse(cx + lightSide * faceW * 0.12, cy - faceH * 0.22, faceW * 0.22, faceH * 0.12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const cheekHighlight = ctx.createRadialGradient(
+    cx + lightSide * faceW * 0.20, cy + faceH * 0.02, 4,
+    cx + lightSide * faceW * 0.20, cy + faceH * 0.02, faceW * 0.16
+  );
+  cheekHighlight.addColorStop(0, "rgba(255,255,255,0.12)");
+  cheekHighlight.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = cheekHighlight;
+  ctx.beginPath();
+  ctx.ellipse(cx + lightSide * faceW * 0.20, cy + faceH * 0.02, faceW * 0.16, faceH * 0.13, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const templeShadow = ctx.createRadialGradient(
+    cx - lightSide * faceW * 0.24, cy - faceH * 0.08, 6,
+    cx - lightSide * faceW * 0.24, cy - faceH * 0.08, faceW * 0.18
+  );
+  templeShadow.addColorStop(0, "rgba(0,0,0,0.12)");
+  templeShadow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = templeShadow;
+  ctx.beginPath();
+  ctx.ellipse(cx - lightSide * faceW * 0.24, cy - faceH * 0.08, faceW * 0.18, faceH * 0.18, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   // Ears
   const earY = cy + rand(-12, 8);
   const earHLeft = rand(62, 96);
@@ -255,6 +337,20 @@ function drawPortrait() {
   ctx.beginPath();
   ctx.arc(cx + faceW * 0.47, earY, 10, -1.4, 1.4);
   ctx.stroke();
+
+  // Eye socket shading under the brows
+  for (const side of [-1, 1]) {
+    const socketGrad = ctx.createRadialGradient(
+      cx + side * eyeGap, eyeY - 4, 3,
+      cx + side * eyeGap, eyeY - 4, eyeW * 0.82
+    );
+    socketGrad.addColorStop(0, `rgba(0,0,0,${expression === "tired" ? 0.12 : 0.08})`);
+    socketGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = socketGrad;
+    ctx.beginPath();
+    ctx.ellipse(cx + side * eyeGap, eyeY - 2, eyeW * 0.72, eyeHBase * 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   function drawEye(x, y, w, h, asym, side) {
     ctx.strokeStyle = "rgba(25,25,25,0.95)";
@@ -293,7 +389,7 @@ function drawPortrait() {
 
     ctx.fillStyle = "rgba(255,255,255,0.85)";
     ctx.beginPath();
-    ctx.arc(x + irisOffset + lightSide * 3, y - 3, 2.2, 0, Math.PI * 2);
+    ctx.arc(x + irisOffset + 3, y - 3, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = `rgba(40,30,25,${lowerBags ? 0.32 : 0.12})`;
@@ -306,22 +402,6 @@ function drawPortrait() {
 
   drawEye(cx - eyeGap, eyeY + eyeAsym + rand(-1.5, 1.5), eyeW * rand(0.88, 1.10), eyeH * rand(0.92, 1.06), rand(-1.8, 1.8), "left");
   drawEye(cx + eyeGap, eyeY - eyeAsym + rand(-1.5, 1.5), eyeW * rand(0.88, 1.10), eyeH * rand(0.92, 1.06), rand(-1.8, 1.8), "right");
-
-  // Eye socket shading
-  ctx.fillStyle = "rgba(45,30,25,0.07)";
-  for (const side of [-1, 1]) {
-    ctx.beginPath();
-    ctx.ellipse(
-      cx + side * eyeGap,
-      eyeY + eyeH * 0.45,
-      eyeW * 0.62,
-      eyeH * 1.3,
-      side * 0.04,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-  }
 
   // Brows with expression
   const browRaise = expression === "tired" ? 3 : expression === "smile" ? 1 : expression === "stern" ? -2 : 0;
@@ -409,44 +489,26 @@ function drawPortrait() {
   ctx.ellipse(cx + rand(9, 15) + noseAsym * 0.25, noseBottom + 3, rand(2.6, 4.2), rand(1.8, 2.7), 0, 0, Math.PI * 2);
   ctx.fill();
 
-
-  // Directional nose shadow
-  const noseShadowSide = -lightSide;
-  const noseShadow = ctx.createLinearGradient(
-    cx,
-    noseTop,
-    cx + noseShadowSide * 42,
-    noseBottom + 22
-  );
-  noseShadow.addColorStop(0, "rgba(70,45,30,0)");
-  noseShadow.addColorStop(1, `rgba(70,45,30,${lightStrength})`);
-  ctx.fillStyle = noseShadow;
+  // Nose cast shadow, depending on light direction
+  ctx.fillStyle = "rgba(0,0,0,0.10)";
   ctx.beginPath();
-  ctx.moveTo(cx + noseAsym, noseTop + 5);
+  ctx.moveTo(cx + noseAsym * 0.3, noseTop + 14);
   ctx.quadraticCurveTo(
-    cx + noseShadowSide * rand(14, 23),
-    (noseTop + noseBottom) / 2,
-    cx + noseShadowSide * rand(18, 30),
-    noseBottom + 18
+    cx + lightSide * 6, cy + 2,
+    cx + lightSide * 16, noseBottom + 12
   );
   ctx.quadraticCurveTo(
-    cx + noseShadowSide * rand(6, 12),
-    noseBottom + 10,
-    cx + noseAsym,
-    noseTop + 5
+    cx + lightSide * 9, noseBottom + 14,
+    cx + lightSide * 2, noseBottom + 4
   );
   ctx.closePath();
   ctx.fill();
 
-  // Mouth / expression
+  // Mouth / expression, with softer lips
   ctx.save();
   const mouthOffsetX = (expression === "smirk" ? rand(2, 7) : rand(-4, 4)) + mouthAsym;
   ctx.translate(cx + mouthOffsetX, mouthY);
-  ctx.rotate(rand(-0.05, 0.05));
-
-  ctx.strokeStyle = "rgba(80,30,30,0.85)";
-  ctx.fillStyle = "rgba(130,65,65,0.55)";
-  ctx.lineWidth = 1.7;
+  ctx.rotate(rand(-0.045, 0.045));
 
   let topLip = lipHBase;
   let bottomLip = lipHBase * 0.85;
@@ -465,21 +527,52 @@ function drawPortrait() {
   if (expression === "stern") smileCurve = rand(-6, -2);
   if (expression === "tired") smileCurve = rand(-4, 1);
 
-  ctx.beginPath();
-  ctx.moveTo(-mouthW / 2, 0);
-  ctx.quadraticCurveTo(-mouthW * 0.18, -topLip - smileCurve * 0.15, 0, -topLip * 0.45);
-  ctx.quadraticCurveTo(mouthW * 0.18, -topLip + (expression === "smirk" ? -2 : 0), mouthW / 2, 0);
-  ctx.quadraticCurveTo(mouthW * 0.18, bottomLip + smileCurve, 0, bottomLip * 0.78 + smileCurve);
-  ctx.quadraticCurveTo(-mouthW * 0.18, bottomLip + smileCurve * 0.55, -mouthW / 2, 0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
+  // Soft lip fill
+  const lipGradient = ctx.createLinearGradient(0, -topLip, 0, bottomLip + smileCurve);
+  lipGradient.addColorStop(0, "rgba(125,62,66,0.52)");
+  lipGradient.addColorStop(0.55, "rgba(145,76,78,0.62)");
+  lipGradient.addColorStop(1, "rgba(110,52,58,0.48)");
+  ctx.fillStyle = lipGradient;
 
   ctx.beginPath();
-  const curveOffset = smileCurve * 0.38 + (expression === "smirk" ? -2 : 0);
-  ctx.moveTo(-mouthW / 2 + 4, 0);
-  ctx.quadraticCurveTo(0, curveOffset, mouthW / 2 - 4, curveOffset + (expression === "smirk" ? -3 : 0));
+  ctx.moveTo(-mouthW / 2, 0);
+  ctx.quadraticCurveTo(-mouthW * 0.20, -topLip - smileCurve * 0.10, 0, -topLip * 0.50);
+  ctx.quadraticCurveTo(mouthW * 0.20, -topLip + (expression === "smirk" ? -2 : 0), mouthW / 2, 0);
+  ctx.quadraticCurveTo(mouthW * 0.20, bottomLip + smileCurve, 0, bottomLip * 0.82 + smileCurve);
+  ctx.quadraticCurveTo(-mouthW * 0.20, bottomLip + smileCurve * 0.55, -mouthW / 2, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  // Very soft outer edge rather than a hard cartoon outline
+  ctx.strokeStyle = "rgba(80,30,35,0.42)";
+  ctx.lineWidth = 1.1;
   ctx.stroke();
+
+  // Mouth opening line
+  ctx.strokeStyle = "rgba(65,28,32,0.72)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  const curveOffset = smileCurve * 0.34 + (expression === "smirk" ? -2 : 0);
+  ctx.moveTo(-mouthW / 2 + 5, 0);
+  ctx.quadraticCurveTo(0, curveOffset, mouthW / 2 - 5, curveOffset + (expression === "smirk" ? -3 : 0));
+  ctx.stroke();
+
+  // Highlight on lower lip
+  ctx.strokeStyle = "rgba(255,255,255,0.16)";
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.moveTo(-mouthW * 0.20, bottomLip * 0.45 + smileCurve * 0.45);
+  ctx.quadraticCurveTo(0, bottomLip * 0.65 + smileCurve * 0.55, mouthW * 0.20, bottomLip * 0.45 + smileCurve * 0.45);
+  ctx.stroke();
+
+  // Shadow beneath lower lip
+  ctx.strokeStyle = "rgba(45,30,25,0.16)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-mouthW * 0.25, bottomLip + 8 + smileCurve * 0.25);
+  ctx.quadraticCurveTo(0, bottomLip + 12 + smileCurve * 0.30, mouthW * 0.25, bottomLip + 8 + smileCurve * 0.25);
+  ctx.stroke();
+
   ctx.restore();
 
   // Chin line
@@ -525,66 +618,25 @@ function drawPortrait() {
     }
   }
 
-  // Cheekbone highlights and opposing shadows
-  for (const side of [-1, 1]) {
-    const lit = side === lightSide;
-    ctx.fillStyle = lit
-      ? "rgba(255,255,255,0.055)"
-      : `rgba(60,40,30,${lightStrength * 0.6})`;
-
-    ctx.beginPath();
-    ctx.ellipse(
-      cx + side * faceW * 0.25,
-      cy + 8,
-      faceW * 0.11,
-      faceH * 0.075,
-      side * -0.20,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-  }
-
   // Subtle lower-face shadow to give the mouth and jaw more depth
   const jawShade = ctx.createLinearGradient(cx, mouthY, cx, cy + faceH * 0.48);
   jawShade.addColorStop(0, "rgba(0,0,0,0)");
-  jawShade.addColorStop(1, "rgba(0,0,0,0.055)");
+  jawShade.addColorStop(1, "rgba(0,0,0,0.07)");
   ctx.fillStyle = jawShade;
   ctx.beginPath();
   ctx.ellipse(cx, cy + faceH * 0.27, faceW * 0.30, faceH * 0.18, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Jaw-edge shadow opposite the light
-  ctx.strokeStyle = `rgba(45,30,22,${lightStrength * 0.7})`;
-  ctx.lineWidth = rand(3, 5);
-  ctx.beginPath();
-  if (lightSide > 0) {
-    ctx.arc(cx, cy + faceH * 0.04, faceW * 0.39, Math.PI * 0.58, Math.PI * 0.93);
-  } else {
-    ctx.arc(cx, cy + faceH * 0.04, faceW * 0.39, Math.PI * 0.07, Math.PI * 0.42);
-  }
-  ctx.stroke();
-
-  // Neck shadow under the chin
-  const neckShadow = ctx.createLinearGradient(
-    cx,
-    cy + faceH * 0.31,
-    cx,
-    cy + faceH * 0.46
+  // Chin/neck cast shadow
+  const neckShadow = ctx.createRadialGradient(
+    cx, cy + faceH * 0.36, 4,
+    cx, cy + faceH * 0.36, faceW * 0.22
   );
-  neckShadow.addColorStop(0, `rgba(50,30,20,${lightStrength * 0.95})`);
-  neckShadow.addColorStop(1, "rgba(50,30,20,0)");
+  neckShadow.addColorStop(0, "rgba(0,0,0,0.15)");
+  neckShadow.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = neckShadow;
   ctx.beginPath();
-  ctx.ellipse(
-    cx,
-    cy + faceH * 0.38,
-    neckW * 0.48,
-    faceH * 0.07,
-    0,
-    0,
-    Math.PI * 2
-  );
+  ctx.ellipse(cx, cy + faceH * 0.36, faceW * 0.22, faceH * 0.08, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // Hair and hairline
@@ -753,7 +805,7 @@ function drawPortrait() {
     ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1, 1);
   }
 
-  info.textContent = "Age: " + age + " | Expression: " + expression + " | Light: " + (lightSide < 0 ? "left" : "right");
+  info.textContent = "Age: " + age + " | Expression: " + expression + " | Light: " + lightLabel;
 }
 
 document.getElementById("generate").addEventListener("click", drawPortrait);
