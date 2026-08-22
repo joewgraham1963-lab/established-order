@@ -48,13 +48,13 @@ const ctx = canvas.getContext("2d");
 const width = canvas.width;
 const height = canvas.height;
 
-let x = 3.14;
-let y = 1.41;
+let x = 0.1;
+let y = 0.1;
 
-let baseA = 3;
+let baseA = 1.4;
 let baseB = -2.3;
-let baseC = 1.41;
-let baseD = 5;
+let baseC = 2.4;
+let baseD = -2.1;
 
 let a = baseA;
 let b = baseB;
@@ -77,7 +77,7 @@ function mutate() {
   baseC = random(-3, 3);
   baseD = random(-3, 3);
   x = random(-0.2, 0.2);
-  y = random(-0.82, 0.2);
+  y = random(-0.2, 0.2);
   palette = Math.random() * 360;
   ctx.fillStyle = "rgba(0,0,0,0.1)";
   ctx.fillRect(0, 0, width, height);
@@ -104,7 +104,7 @@ function plot() {
   const cosR = Math.cos(rotation);
   const sinR = Math.sin(rotation);
 
-  ctx.fillStyle = "rgba(0,0,0,0.05)";
+  ctx.fillStyle = "rgba(0,0,0,0.032)";
   ctx.fillRect(0, 0, width, height);
 
   for (let i = 0; i < 4000; i++) {
