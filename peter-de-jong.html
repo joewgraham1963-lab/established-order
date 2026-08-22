@@ -19,7 +19,7 @@
       width: min(94vw, 700px);
       height: auto;
       background: black;
-      box-shadow: 0 0 30px rgba(255,255,255,0.08);
+      box-shadow: 0 0 30px rgba(255,255,255,0.908);
       touch-action: manipulation;
     }
     #info { margin-bottom: 8px; font-size: 14px; }
@@ -48,10 +48,10 @@ const ctx = canvas.getContext("2d");
 const width = canvas.width;
 const height = canvas.height;
 
-let x = 1;
+let x = 3.14;
 let y = 1.41;
 
-let baseA = 1.9;
+let baseA = 3;
 let baseB = -2.3;
 let baseC = 2.4;
 let baseD = 5;
@@ -83,7 +83,7 @@ function mutate() {
   ctx.fillRect(0, 0, width, height);
 }
 
-function clearTrails() {
+function clearTrails() {.
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, width, height);
 }
