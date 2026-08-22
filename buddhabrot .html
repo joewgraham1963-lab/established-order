@@ -1,1 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buddhabrot</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #848484;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+
+    h1 {
+      margin: 14px 0 8px;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto 12px;
+      width: min(94vw, 560px);
+      height: auto;
+      background: black;
+      box-shadow: 0 0 25px rgba(255,255,255,0.08);
+      touch-action: manipulation;
+    }
+
+    #info, #hint {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    #hint {
+      font-size: 13px;
+      opacity: 0.8;
+      margin-bottom: 14px;
+      padding: 0 12px;
+    }
+
+    .controls {
+      margin-bottom: 18px;
+    }
+
+    button {
+      font-size: 18px;
+      padding: 10px 16px;
+      border: 2px solid #111;
+      border-radius: 14px;
+      margin: 0 4px 8px;
+      background: #eee;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Buddhabrot</h1>
+
+<canvas id="canvas" width="420" height="420"></canvas>
+
+<div id="info">Samples: 0 | Escaped: 0 | Max iterations: 600</div>
+<div id="hint">This one is heavier than the others. It gradually builds up from many random Mandelbrot escape orbits, so give it a little time to bloom.</div>
+
+<div class="controls">
+  <button id="toggle">Pause</button>
+  <button id="clear">Clear</button>
+  <button id="shuffle">Shuffle palette</button>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const width = canvas.width;
+const height = canvas.height;
+
+let running = true;
+let samples = 0;
+let escaped = 0;
+
+let maxIter = 600;
+let samplesPerFrame = 220;
+let renderEvery = 4;
+let frameCount = 0;
+
+const xmin = -2.2;
+const xmax = 1.2;
+const ymin = -1.5;
+const ymax = 1.5;
+
+const size = width * height;
+let red = new Float32Array(size);
+let green = new Float32Array(size);
+let blue = new Float32Array(size);
+
+let paletteShift = Math.random() * Math.PI * 2;
+
+const image = ctx.createImageData(width, height);
+const data = image.data;
+
+function random(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function pixelX(x) {
+  return Math.floor((x - xmin) / (xmax - xmin) * width);
+}
+
+function pixelY(y) {
+  return Math.floor((ymax - y) / (ymax - ymin) * height);
+}
+
+function clearAll() {
+  red.fill(0);
+  green.fill(0);
+  blue.fill(0);
+  samples = 0;
+  escaped = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 0;
+    data[i + 1] = 0;
+    data[i + 2] = 0;
+    data[i + 3] = 255;
+  }
+  ctx.putImageData(image, 0, 0);
+  updateInfo();
+}
+
+function updateInfo() {
+  document.getElementById("info").textContent =
+    "Samples: " + samples.toLocaleString() +
+    " | Escaped: " + escaped.toLocaleString() +
+    " | Max iterations: " + maxIter;
+}
+
+function insideMainCardioidOrBulb(cx, cy) {
+  // Fast skip for points definitely in the Mandelbrot set.
+  const x = cx;
+  const y = cy;
+
+  const q = (x - 0.25) * (x - 0.25) + y * y;
+  if (q * (q + (x - 0.25)) <= 0.25 * y * y) return true;
+
+  if ((x + 1) * (x + 1) + y * y <= 0.0625) return true;
+
+  return false;
+}
+
+function sampleOrbit() {
+  const cx = random(xmin, xmax);
+  const cy = random(ymin, ymax);
+
+  samples++;
+
+  if (insideMainCardioidOrBulb(cx, cy)) {
+    return;
+  }
+
+  let x = 0;
+  let y = 0;
+
+  const orbitX = [];
+  const orbitY = [];
+
+  let iter = 0;
+
+  while (x * x + y * y <= 4 && iter < maxIter) {
+    const xNew = x * x - y * y + cx;
+    y = 2 * x * y + cy;
+    x = xNew;
+
+    orbitX.push(x);
+    orbitY.push(y);
+    iter++;
+  }
+
+  if (iter >= maxIter) {
+    return;
+  }
+
+  escaped++;
+
+  for (let i = 0; i < orbitX.length; i++) {
+    const px = pixelX(orbitX[i]);
+    const py = pixelY(orbitY[i]);
+
+    if (px < 0 || px >= width || py < 0 || py >= height) continue;
+
+    const index = py * width + px;
+
+    // Split the orbit into bands for colour.
+    if (i < orbitX.length * 0.33) {
+      blue[index] += 1;
+    } else if (i < orbitX.length * 0.66) {
+      green[index] += 1;
+    } else {
+      red[index] += 1;
+    }
+  }
+}
+
+function render() {
+  let maxR = 0;
+  let maxG = 0;
+  let maxB = 0;
+
+  for (let i = 0; i < size; i++) {
+    if (red[i] > maxR) maxR = red[i];
+    if (green[i] > maxG) maxG = green[i];
+    if (blue[i] > maxB) maxB = blue[i];
+  }
+
+  maxR = Math.max(maxR, 1);
+  maxG = Math.max(maxG, 1);
+  maxB = Math.max(maxB, 1);
+
+  for (let i = 0; i < size; i++) {
+    // Log scaling helps pull faint structure out of the darkness.
+    let r = Math.log(red[i] + 1) / Math.log(maxR + 1);
+    let g = Math.log(green[i] + 1) / Math.log(maxG + 1);
+    let b = Math.log(blue[i] + 1) / Math.log(maxB + 1);
+
+    // Mild palette drift so it looks a bit more alive.
+    const pr = 0.75 + 0.25 * Math.sin(paletteShift);
+    const pg = 0.75 + 0.25 * Math.sin(paletteShift + 2.094);
+    const pb = 0.75 + 0.25 * Math.sin(paletteShift + 4.188);
+
+    r = Math.pow(r, 0.78) * pr;
+    g = Math.pow(g, 0.78) * pg;
+    b = Math.pow(b, 0.78) * pb;
+
+    const j = i * 4;
+    data[j] = Math.min(255, Math.floor(r * 255));
+    data[j + 1] = Math.min(255, Math.floor(g * 255));
+    data[j + 2] = Math.min(255, Math.floor(b * 255));
+    data[j + 3] = 255;
+  }
+
+  ctx.putImageData(image, 0, 0);
+  updateInfo();
+}
+
+function animate() {
+  if (running) {
+    for (let i = 0; i < samplesPerFrame; i++) {
+      sampleOrbit();
+    }
+
+    frameCount++;
+    if (frameCount % renderEvery === 0) {
+      render();
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+document.getElementById("toggle").addEventListener("click", function() {
+  running = !running;
+  this.textContent = running ? "Pause" : "Resume";
+});
+
+document.getElementById("clear").addEventListener("click", function() {
+  clearAll();
+});
+
+document.getElementById("shuffle").addEventListener("click", function() {
+  paletteShift = Math.random() * Math.PI * 2;
+  render();
+});
+
+clearAll();
+animate();
+</script>
+
+</body>
+</html>
 
