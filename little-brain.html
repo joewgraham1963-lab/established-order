@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Little Brain</title>
+<style>
+body{margin:0;background:#848484;font-family:Arial,sans-serif;text-align:center;color:#111}
+.wrap{width:min(94vw,720px);margin:0 auto;padding:18px 12px 40px;box-sizing:border-box}
+h1{margin:4px 0 8px}
+.brain{font-size:88px;display:inline-block;animation:pulse 2.4s ease-in-out infinite;user-select:none}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+#mood{margin:6px 0 14px}
+.panel{background:rgba(255,255,255,.28);border:2px solid #222;border-radius:18px;padding:14px;text-align:left}
+#thoughts{height:260px;overflow-y:auto;background:#111;color:#eee;border-radius:12px;padding:12px;font-family:monospace;line-height:1.45}
+.thought{margin:0 0 9px}
+.brain-thought::before{content:"brain: ";opacity:.6}
+.user-thought::before{content:"you: ";opacity:.6}
+.controls{display:flex;gap:8px;margin-top:12px}
+input{flex:1;min-width:0;font-size:18px;padding:12px;border:2px solid #222;border-radius:12px}
+button{font-size:18px;padding:12px 16px;border:2px solid #222;border-radius:12px;background:#eee}
+.meters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.meter{background:rgba(255,255,255,.24);border-radius:12px;padding:8px;font-size:13px}
+.bar{height:8px;background:rgba(0,0,0,.18);border-radius:999px;overflow:hidden;margin-top:5px}
+.fill{height:100%;width:50%;background:#222;transition:width .5s ease}
+#memory{font-size:13px;opacity:.8;margin-top:10px}
+.small{font-size:12px;opacity:.72;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Little Brain</h1>
+<div class="brain">🧠</div>
+<div id="mood">Mood: waking up...</div>
+
+<div class="panel">
+<div id="thoughts"></div>
+<div class="controls">
+<input id="input" type="text" placeholder="Tell it something..." autocomplete="off">
+<button id="send">Feed thought</button>
+</div>
+<div id="memory">Memory: empty</div>
+<div class="small">It remembers recent words, changes internal states, and produces spontaneous thoughts. It is a simulation, not a conscious mind.</div>
+</div>
+
+<div class="meters">
+<div class="meter">Curiosity<div class="bar"><div class="fill" id="curiosityBar"></div></div></div>
+<div class="meter">Calm<div class="bar"><div class="fill" id="calmBar"></div></div></div>
+<div class="meter">Mischief<div class="bar"><div class="fill" id="mischiefBar"></div></div></div>
+</div>
+</div>
+
+<script>
+const thoughtsEl=document.getElementById("thoughts");
+const inputEl=document.getElementById("input");
+const sendBtn=document.getElementById("send");
+const moodEl=document.getElementById("mood");
+const memoryEl=document.getElementById("memory");
+
+let state={curiosity:65,calm:55,mischief:45};
+let memory=[];
+let associations={};
+
+const starters=[
+"I wonder why","Perhaps","It seems possible that","Something about",
+"I keep returning to","There is probably a connection between",
+"For no obvious reason, I am thinking about","Suppose",
+"I have become suspicious of","What if"
+];
+
+const endings=[
+"and nobody has noticed.","but I may be making that up.",
+"which seems unnecessarily complicated.","for reasons I cannot properly justify.",
+"and this feels important for about three seconds.","although the evidence is poor.",
+"which is probably how trouble starts.","and now I cannot stop thinking about it.",
+"but the thought refuses to explain itself.","which may be completely useless."
+];
+
+const strayWords=[
+"gravity","pigeon","memory","moon","toilet","clock","order","chaos",
+"sandwich","dream","signal","shadow","number","window","badger",
+"machine","silence","Tuesday","spiral","weather","dustbin","thought"
+];
+
+function clamp(n){return Math.max(0,Math.min(100,n))}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+
+function cleanWords(text){
+ return text.toLowerCase().replace(/[^a-z0-9' -]/g," ").split(/\s+/).filter(w=>w.length>2);
+}
+
+function remember(text){
+ const words=cleanWords(text);
+ words.forEach(word=>{
+   memory.push(word);
+   if(memory.length>18) memory.shift();
+   if(!associations[word]) associations[word]={};
+   words.forEach(other=>{
+     if(other!==word) associations[word][other]=(associations[word][other]||0)+1;
+   });
+ });
+ state.curiosity=clamp(state.curiosity+Math.min(8,words.length));
+ state.mischief=clamp(state.mischief+(Math.random()*8-2));
+ state.calm=clamp(state.calm+(Math.random()*6-3));
+ updateDisplay();
+}
+
+function relatedTo(word){
+ const links=associations[word];
+ if(!links) return null;
+ const candidates=Object.keys(links);
+ if(!candidates.length) return null;
+ candidates.sort((a,b)=>links[b]-links[a]);
+ return candidates[Math.floor(Math.random()*Math.min(4,candidates.length))];
+}
+
+function chooseSeed(){
+ if(memory.length&&Math.random()<.72) return pick(memory);
+ return pick(strayWords);
+}
+
+function generateThought(){
+ const seed=chooseSeed();
+ const related=relatedTo(seed);
+ let middle;
+ if(related&&Math.random()<.7) middle=seed+" and "+related;
+ else if(state.mischief>65&&Math.random()<.5) middle=seed+" arguing with "+pick(strayWords);
+ else if(state.curiosity>70&&Math.random()<.5) middle=seed+" might be connected to "+pick(strayWords);
+ else middle=seed;
+
+ let thought=pick(starters)+" "+middle+" "+pick(endings);
+ if(state.calm<30&&Math.random()<.45) thought+=" Something is slightly off.";
+ if(state.mischief>80&&Math.random()<.4) thought+=" I blame the furniture.";
+
+ addThought(thought,"brain");
+ state.curiosity=clamp(state.curiosity+(Math.random()*6-3));
+ state.calm=clamp(state.calm+(Math.random()*8-4));
+ state.mischief=clamp(state.mischief+(Math.random()*10-5));
+ updateDisplay();
+}
+
+function addThought(text,who){
+ const p=document.createElement("div");
+ p.className="thought "+(who==="user"?"user-thought":"brain-thought");
+ p.textContent=text;
+ thoughtsEl.appendChild(p);
+ while(thoughtsEl.children.length>40) thoughtsEl.removeChild(thoughtsEl.firstChild);
+ thoughtsEl.scrollTop=thoughtsEl.scrollHeight;
+}
+
+function updateDisplay(){
+ document.getElementById("curiosityBar").style.width=state.curiosity+"%";
+ document.getElementById("calmBar").style.width=state.calm+"%";
+ document.getElementById("mischiefBar").style.width=state.mischief+"%";
+
+ let mood="neutral";
+ if(state.mischief>75)mood="mischievous";
+ else if(state.curiosity>75)mood="curious";
+ else if(state.calm>72)mood="serene";
+ else if(state.calm<28)mood="restless";
+ else if(state.curiosity<30)mood="bored";
+
+ moodEl.textContent="Mood: "+mood;
+ const recent=[...new Set(memory.slice(-8))];
+ memoryEl.textContent=recent.length?"Memory: "+recent.join(", "):"Memory: empty";
+}
+
+function feedThought(){
+ const text=inputEl.value.trim();
+ if(!text)return;
+ addThought(text,"user");
+ remember(text);
+ inputEl.value="";
+ setTimeout(generateThought,350+Math.random()*650);
+}
+
+sendBtn.addEventListener("click",feedThought);
+inputEl.addEventListener("keydown",e=>{if(e.key==="Enter")feedThought()});
+
+function spontaneousLoop(){
+ const delay=2500+Math.random()*4500;
+ setTimeout(()=>{
+   generateThought();
+   spontaneousLoop();
+ },delay);
+}
+
+addThought("I appear to exist in a browser. This is already suspicious.","brain");
+updateDisplay();
+spontaneousLoop();
+</script>
+</body>
+</html>
