@@ -19,7 +19,7 @@
       width: min(94vw, 700px);
       height: auto;
       background: black;
-      box-shadow: 0 0 30px rgba(255,255,255,0.908);
+      box-shadow: 0 0 30px rgba(255,255,255,0.999);
       touch-action: manipulation;
     }
     #info { margin-bottom: 8px; font-size: 14px; }
@@ -53,7 +53,7 @@ let y = 1.41;
 
 let baseA = 3;
 let baseB = -2.3;
-let baseC = 2.4;
+let baseC = 1.41;
 let baseD = 5;
 
 let a = baseA;
@@ -79,7 +79,7 @@ function mutate() {
   x = random(-0.2, 0.2);
   y = random(-0.82, 0.2);
   palette = Math.random() * 360;
-  ctx.fillStyle = "rgba(0,0,0,0.86)";
+  ctx.fillStyle = "rgba(0,0,0,0.1)";
   ctx.fillRect(0, 0, width, height);
 }
 
