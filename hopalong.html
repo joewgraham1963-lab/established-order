@@ -91,7 +91,7 @@ function clearTrails() {
 }
 
 function plot() {
-  time += 0.006;
+  time += 0.06;
 
   a = baseA + Math.sin(time * 0.81) * 0.05;
   b = baseB + Math.cos(time * 0.63) * 0.05;
@@ -105,7 +105,7 @@ function plot() {
   const cosR = Math.cos(rotation);
   const sinR = Math.sin(rotation);
 
-  ctx.fillStyle = "rgba(0,0,0,0.03)";
+  ctx.fillStyle = "rgba(0,0,0,0.02)";
   ctx.fillRect(0, 0, width, height);
 
   for (let i = 0; i < 5000; i++) {
