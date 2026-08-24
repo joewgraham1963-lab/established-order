@@ -393,7 +393,9 @@ box-sizing: border-box;
       if (isLiveTime) return;
 
       const nowReal = performance.now();
-      if (nowReal - trailState.lastStamp < 90) return;
+      const trailInterval = timeSpeed >= 525949 ? 30 : 90;
+
+if (nowReal - trailState.lastStamp < trailInterval) return;
       trailState.lastStamp = nowReal;
 
       addTrailDot("sun", sunX, sunY);
