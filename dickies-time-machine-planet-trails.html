@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  
   <title>Dickinson's Clock</title>
   <style>
     body {
@@ -316,7 +317,14 @@ box-sizing: border-box;
   opacity: 0.8;
   min-height: 14px;
 }
-
+@media (max-width: 600px) {
+  #clockContainer {
+    transform: scale(1.35);
+    transform-origin: top center;
+    margin-top: 40px;
+    margin-bottom: 140px;
+  }
+}
   </style>
 </head>
 
