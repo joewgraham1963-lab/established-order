@@ -46,6 +46,25 @@ button{font-size:18px;padding:12px 16px;border:2px solid #222;border-radius:12px
 .fill{height:100%;width:50%;background:#222;transition:width .5s ease}
 #memory,#longMemory{font-size:13px;opacity:.8;margin-top:10px}
 .small{font-size:12px;opacity:.72;margin-top:8px}
+  .brain-help{
+  margin:0 0 12px;
+  background:rgba(255,255,255,.22);
+  border:1px solid #222;
+  border-radius:12px;
+  padding:9px 11px;
+  font-size:14px;
+}
+
+.brain-help summary{
+  cursor:pointer;
+  font-weight:bold;
+  text-align:center;
+}
+
+.brain-help-text{
+  margin-top:10px;
+  line-height:1.4;
+     }
 </style>
 </head>
 <body>
@@ -55,6 +74,15 @@ button{font-size:18px;padding:12px 16px;border:2px solid #222;border-radius:12px
 <div id="mood">Mood: waking up...</div>
 
 <div class="panel">
+  <details class="brain-help">
+  <summary>How to talk to Brain</summary>
+  <div class="brain-help-text">
+    Ask Brain questions, teach him things, or challenge what he believes.<br><br>
+    Try: “Who are you?”, “What do you know?”, “What are your doubts?” or “What is astronomy?”<br><br>
+    Teach him with simple statements such as: “Astronomy is the study of space, stars and planets.”<br><br>
+    Brain remembers what you teach him in this browser. He may remember something without believing it is true.
+  </div>
+</details>
 <div id="thoughts"></div>
 <div class="controls">
 <textarea id="input" placeholder="Tell it something..." autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
