@@ -602,7 +602,67 @@ body.cosmos-mode { background: radial-gradient(circle at center,#171a20 0%,#0809
   #cosmosViewport { width:min(70vw, 295px); }
   #cosmosPanel { margin-top:4px; }
 }
+@media (max-width: 600px) {
 
+  body.cosmos-mode #clockContainer {
+    transform: none;
+    margin-top: 0;
+    margin-bottom: 20px;
+    width: 100%;
+  }
+
+  #cosmosPanel {
+    width: 94vw;
+    max-width: 340px;
+    margin: 6px auto 0;
+    font-size: 11px;
+  }
+
+  #cosmosViewport {
+    width: min(76vw, 290px);
+    margin-bottom: 6px;
+  }
+
+  #cosmosTitle {
+    font-size: 13px;
+  }
+
+  #cosmosEra {
+    min-height: 28px;
+    font-size: 11px;
+  }
+
+  #cosmosReadout {
+    font-size: 11px;
+    min-height: 28px;
+    margin: 4px 0 5px;
+  }
+
+  #cosmosLookback,
+  #cosmosZoom {
+    width: 92%;
+  }
+
+  .cosmos-scale {
+    width: 92%;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 8px;
+  }
+
+  #cosmosCentreLabel {
+    font-size: 9px;
+  }
+
+  #cosmosFact {
+    font-size: 9px;
+  }
+
+  #cosmosNow {
+    margin-top: 5px;
+    padding: 6px 9px;
+  }
+}
 </style>
 </head>
 
