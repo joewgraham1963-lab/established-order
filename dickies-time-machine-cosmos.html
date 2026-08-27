@@ -662,7 +662,20 @@ body.cosmos-mode { background: radial-gradient(circle at center,#171a20 0%,#0809
     margin-top: 5px;
     padding: 6px 9px;
   }
+body:not(.cosmos-mode) #clockContainer {
+  transform: scale(0.88);
+  transform-origin: top center;
+  margin-top: 0;
+  margin-bottom: -45px;
 }
+
+body:not(.cosmos-mode) #scrubControls,
+body:not(.cosmos-mode) #timeControls {
+  width: 92vw;
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}}
 </style>
 </head>
 
