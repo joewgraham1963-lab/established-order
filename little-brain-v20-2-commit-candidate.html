@@ -578,7 +578,7 @@ function recoverSpeakerIdentity(){
     const s=normaliseTerm(item.subject||"");
     const v=(item.value||"").trim();
 
-    if(s==="my name" || s==="the speaker"){
+   if(s==="my name" || s==="the speaker" || s==="speaker"){ 
       const m=v.match(/^([A-Za-z][A-Za-z '\-]{0,38})/);
       if(m){
         identity.speaker.name=tidyName(m[1]);
@@ -1147,8 +1147,11 @@ function remember(text){
  });
 
  linkConcepts(words);
- learnDefinition(text);
- detectFact(text);
+learnIdentity(text);
+learnRelationship(text);
+learnTypedSemantics(text);
+learnDefinition(text);
+detectFact(text);
 
  state.curiosity=clamp(state.curiosity+Math.min(9,words.length));
  state.mischief=clamp(state.mischief+(Math.random()*8-2));
