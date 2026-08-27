@@ -1894,7 +1894,15 @@ animateSecondHand();
 
   function draw(){
     const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
-    const g=lookbackGyr(), age=Math.max(0,AGE-g), z=Number(zoom.value);
+    const g=lookbackGyr(), age=Math.max(0,AGE-g), z=Number(zoom.value);const centreLabel = document.getElementById("cosmosCentreLabel");
+
+if (g < 4.54) {
+  centreLabel.textContent = "YOU / RHYL";
+  centreLabel.style.display = "";
+} else {
+  centreLabel.textContent = "";
+  centreLabel.style.display = "none";
+}
     ctx.clearRect(0,0,W,H);
     const bg=ctx.createRadialGradient(cx,cy,0,cx,cy,W*.52);
     if(g>13.7996){ bg.addColorStop(0,'rgb(255,175,92)'); bg.addColorStop(.55,'rgb(173,75,32)'); bg.addColorStop(1,'rgb(40,8,3)'); }
