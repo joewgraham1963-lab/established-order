@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Infinite Empty Space — Earth, Moon & Mercury</title>
+<style>
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    touch-action: none;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  #space {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #space.dragging {
+    cursor: grabbing;
+  }
+
+  #orbit-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .orbit-stroke {
+    fill: none;
+    stroke: rgba(255,255,255,0.11);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  #centre-dot {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  #earth {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    transform-origin: center center;
+    pointer-events: none;
+    overflow: visible;
+    user-select: none;
+    -webkit-user-select: none;
+      z-index: 3;
+  }
+
+  #earth-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 50%;
+  }
+
+  #earth-map path {
+    fill: #6f9253;
+    stroke: rgba(18,28,18,0.28);
+    stroke-width: 0.008;
+  }
+
+  #moon {
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform-origin: center center;
+    pointer-events: none;
+    overflow: visible;
+      z-index: 3;
+  }
+
+  #moon svg {
+    display: block;
+    width: 200px;
+    height: 200px;
+    overflow: visible;
+  }
+
+  #mercury {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 1.532px;
+    height: 1.532px;
+    border-radius: 50%;
+    background: #a79d90;
+    transform-origin: center center;
+    pointer-events: none;
+      z-index: 3;
+  }
+
+  #sun {
+    position: fixed;
+    left: 0;
+    top: 0;
+    border-radius: 50%;
+    background: #fff6a0;
+    box-shadow: 0 0 18px rgba(255, 245, 170, 0.65);
+    transform-origin: center center;
+    pointer-events: none;
+      z-index: 3;
+  }
+
+  #time-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    z-index: 11;
+    width: min(48vw, 260px);
+    padding: 7px 10px 6px;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 9px;
+    background: rgba(15,15,15,0.72);
+    color: rgba(255,255,255,0.68);
+    font-size: 11px;
+    text-align: center;
+    touch-action: manipulation;
+  }
+
+  #time-label {
+    margin-bottom: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #sim-date {
+    margin-top: 1px;
+    color: rgba(255,255,255,0.38);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #time-scale {
+    width: 100%;
+    margin: 2px 0 0;
+    accent-color: #aaa;
+    touch-action: manipulation;
+  }
+
+  #find-menu-wrap {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    z-index: 12;
+  }
+
+  #find-menu {
+    padding: 8px 10px;
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 8px;
+    background: rgba(20,20,20,0.88);
+    color: rgba(255,255,255,0.85);
+    font-size: 13px;
+    outline: none;
+  }
+
+  #hud {
+    position: fixed;
+    left: 12px;
+    bottom: 12px;
+    color: rgba(255,255,255,0.38);
+    font-size: 12px;
+    line-height: 1.45;
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #hint {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.28);
+    font-size: 12px;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: opacity 1.2s ease;
+  }
+</style>
+</head>
+<body>
+
+<div id="space"></div>
+<div id="centre-dot"></div>
+<svg id="orbit-overlay" aria-hidden="true">
+  <ellipse id="earth-orbit-guide" class="orbit-stroke"></ellipse>
+  <ellipse id="mercury-orbit-guide" class="orbit-stroke"></ellipse>
+  <circle id="moon-orbit-guide" class="orbit-stroke"></circle>
+</svg>
+<div id="earth">
+  <svg id="earth-svg" viewBox="-1 -1 2 2" aria-label="Rotating Earth">
+    <defs>
+      <clipPath id="earth-clip">
+        <circle cx="0" cy="0" r="1"></circle>
+      </clipPath>
+    </defs>
+    <circle cx="0" cy="0" r="1" fill="#286fb7"></circle>
+    <g id="earth-grid" clip-path="url(#earth-clip)"></g>
+    <g id="earth-map" clip-path="url(#earth-clip)"></g>
+    <path id="earth-night"
+          d="M 0 -1 A 1 1 0 0 0 0 1 L 0 -1 Z"
+          fill="rgba(0,0,18,0.72)"></path>
+    <g id="earth-poles" pointer-events="none">
+      <circle cx="0" cy="-0.94" r="0.022" fill="rgba(255,255,255,0.88)"></circle>
+      <circle cx="0" cy="0.94" r="0.022" fill="rgba(255,255,255,0.88)"></circle>
+      <text x="0" y="-0.84" text-anchor="middle"
+            font-size="0.11" fill="rgba(255,255,255,0.78)"
+            font-family="Arial, sans-serif">N</text>
+      <text x="0" y="0.91" text-anchor="middle"
+            font-size="0.11" fill="rgba(255,255,255,0.78)"
+            font-family="Arial, sans-serif">S</text>
+    </g>
+    <circle id="earth-light-rim" cx="0" cy="0" r="0.985" fill="none"
+            stroke="rgba(255,255,255,0.08)" stroke-width="0.02"></circle>
+    <circle cx="0" cy="0" r="0.992" fill="none"
+            stroke="rgba(255,255,255,0.16)" stroke-width="0.015"></circle>
+  </svg>
+</div>
+<div id="moon">
+  <svg viewBox="0 0 200 200" aria-hidden="true">
+    <defs>
+      <radialGradient id="moonBase" cx="38%" cy="34%" r="72%">
+        <stop offset="0%" stop-color="#eeeeee"/>
+        <stop offset="70%" stop-color="#cfcfcf"/>
+        <stop offset="100%" stop-color="#b7b7b7"/>
+      </radialGradient>
+      <clipPath id="moonClip">
+        <circle cx="100" cy="100" r="100"/>
+      </clipPath>
+    </defs>
+
+    <circle cx="100" cy="100" r="100" fill="url(#moonBase)"/>
+
+    <g clip-path="url(#moonClip)" opacity="0.85">
+      <!-- Broad maria, loosely inspired by the lunar near side -->
+      <ellipse cx="72" cy="71" rx="27" ry="17" fill="#9f9f9f" transform="rotate(-18 72 71)"/>
+      <ellipse cx="121" cy="63" rx="24" ry="15" fill="#969696" transform="rotate(12 121 63)"/>
+      <ellipse cx="134" cy="94" rx="24" ry="18" fill="#8f8f8f" transform="rotate(-22 134 94)"/>
+      <ellipse cx="89" cy="104" rx="31" ry="19" fill="#a4a4a4" transform="rotate(9 89 104)"/>
+      <ellipse cx="112" cy="128" rx="22" ry="16" fill="#999999" transform="rotate(20 112 128)"/>
+      <ellipse cx="58" cy="123" rx="17" ry="12" fill="#a8a8a8" transform="rotate(-30 58 123)"/>
+
+      <!-- Craters -->
+      <circle cx="52" cy="49" r="8" fill="#b9b9b9"/>
+      <circle cx="52" cy="49" r="5.5" fill="#d9d9d9"/>
+      <circle cx="152" cy="55" r="7" fill="#a7a7a7"/>
+      <circle cx="152" cy="55" r="4.5" fill="#cfcfcf"/>
+      <circle cx="41" cy="92" r="6" fill="#a9a9a9"/>
+      <circle cx="41" cy="92" r="3.8" fill="#d2d2d2"/>
+      <circle cx="151" cy="123" r="9" fill="#ababab"/>
+      <circle cx="151" cy="123" r="6" fill="#d5d5d5"/>
+      <circle cx="79" cy="150" r="7" fill="#a0a0a0"/>
+      <circle cx="79" cy="150" r="4.5" fill="#d1d1d1"/>
+      <circle cx="116" cy="157" r="5" fill="#a8a8a8"/>
+      <circle cx="116" cy="157" r="3" fill="#d9d9d9"/>
+
+      <!-- Small mottling -->
+      <circle cx="30" cy="66" r="3.5" fill="#b0b0b0"/>
+      <circle cx="170" cy="87" r="4" fill="#a5a5a5"/>
+      <circle cx="141" cy="155" r="3" fill="#a0a0a0"/>
+      <circle cx="63" cy="170" r="4" fill="#aaaaaa"/>
+      <circle cx="98" cy="42" r="3" fill="#b2b2b2"/>
+      <circle cx="33" cy="137" r="3" fill="#9f9f9f"/>
+    </g>
+
+    <circle cx="100" cy="100" r="99" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+  </svg>
+</div>
+<div id="sun"></div>
+<div id="mercury"></div>
+
+<div id="hint">Drag to move · pinch or wheel to zoom</div>
+
+
+<div id="time-controls">
+  <div id="time-label">Time 1×</div>
+  <input id="time-scale" type="range" min="-6" max="6" step="1" value="0" aria-label="Time speed">
+  <div id="sim-date"></div>
+</div>
+
+<div id="find-menu-wrap">
+  <select id="find-menu" aria-label="Find object">
+    <option value="">Find…</option>
+    <option value="origin">Origin</option>
+    <option value="sun">Sun</option>
+    <option value="mercury">Mercury</option>
+    <option value="earth">Earth</option>
+    <option value="moon">Moon</option>
+  </select>
+</div>
+
+<div id="hud">
+  <div id="position">x 0 · y 0</div>
+  <div id="zoom">zoom 1×</div>
+</div>
+
+<script>
+(() => {
+  const space = document.getElementById("space");
+  const posReadout = document.getElementById("position");
+  const zoomReadout = document.getElementById("zoom");
+  const hint = document.getElementById("hint");
+  const centreDot = document.getElementById("centre-dot");
+  const earth = document.getElementById("earth");
+  const earthGrid = document.getElementById("earth-grid");
+  const earthMap = document.getElementById("earth-map");
+  const earthNight = document.getElementById("earth-night");
+  const orbitOverlay = document.getElementById("orbit-overlay");
+  const earthOrbitGuide = document.getElementById("earth-orbit-guide");
+  const mercuryOrbitGuide = document.getElementById("mercury-orbit-guide");
+  const moonOrbitGuide = document.getElementById("moon-orbit-guide");
+  const moon = document.getElementById("moon");
+  const sun = document.getElementById("sun");
+  const mercury = document.getElementById("mercury");
+  const findMenu = document.getElementById("find-menu");
+  const timeScaleInput = document.getElementById("time-scale");
+  const timeLabel = document.getElementById("time-label");
+  const simDateReadout = document.getElementById("sim-date");
+
+  let offsetX = window.innerWidth / 2;
+  let offsetY = window.innerHeight / 2;
+
+  // Exponential zoom value. This avoids hitting a practical hard edge too quickly.
+  let zoomPower = 0;
+
+  // Simulation clock. At the centre of the slider, simulated time equals real time.
+  let simulationTimeMs = Date.now();
+  let lastRealTickMs = performance.now();
+  let timeScale = 1;
+
+  function sliderToTimeScale(v) {
+    const n = Number(v);
+    if (n === 0) return 1;
+    if (n > 0) return Math.pow(10, n);
+    return -Math.pow(10, Math.abs(n) - 1);
+  }
+
+  function formatTimeScale(scale) {
+    const sign = scale < 0 ? "−" : "";
+    return sign + Math.abs(scale).toLocaleString() + "×";
+  }
+
+  function advanceSimulationClock() {
+    const now = performance.now();
+    const realElapsed = now - lastRealTickMs;
+    lastRealTickMs = now;
+    simulationTimeMs += realElapsed * timeScale;
+  }
+
+  // Earth is 4 world-pixels across at zoom 1.
+  // 4 px represents Earth's real diameter: about 12,742 km.
+  const earthDiameter = 4;
+
+  // True relative scale:
+  // Sun diameter ≈ 109.2 Earth diameters.
+  // Mean Earth-Sun distance ≈ 11,740 Earth diameters.
+  const sunDiameter = earthDiameter * 109.2;      // ≈ 436.8 world-pixels
+  const earthSunDistance = earthDiameter * 11740; // ≈ 46,960 world-pixels
+
+  // Keep the Sun where it already was in this little universe.
+  const sunWorldX = 47080;
+  const sunWorldY = 60;
+
+  // Earth's real orbital shape and period, approximated.
+  const orbitalEccentricity = 0.0167086;
+  const orbitalPeriodDays = 365.256363004;
+
+  // Approximate 2026 perihelion epoch, used only to anchor the orbit to the calendar.
+  const perihelionEpochMs = Date.UTC(2026, 0, 3, 17, 0, 0);
+
+  function solveKepler(meanAnomaly, e) {
+    let E = meanAnomaly;
+    for (let i = 0; i < 8; i++) {
+      E -= (E - e * Math.sin(E) - meanAnomaly) / (1 - e * Math.cos(E));
+    }
+    return E;
+  }
+
+  function getEarthWorldPosition(nowMs = simulationTimeMs) {
+    const dayMs = 86400000;
+    const elapsedDays = (nowMs - perihelionEpochMs) / dayMs;
+
+    // Keep the mean anomaly neatly wrapped to one revolution.
+    let M = 2 * Math.PI * (elapsedDays / orbitalPeriodDays);
+    M = ((M % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+
+    const E = solveKepler(M, orbitalEccentricity);
+
+    // Ellipse with the Sun at one focus.
+    const a = earthSunDistance;
+    const e = orbitalEccentricity;
+    const b = a * Math.sqrt(1 - e * e);
+
+    const x = a * (Math.cos(E) - e);
+    const y = b * Math.sin(E);
+
+    return {
+      x: sunWorldX + x,
+      y: sunWorldY + y
+    };
+  }
+
+  const pointers = new Map();
+  let lastSingle = null;
+  let lastPinchDistance = null;
+  let lastPinchCenter = null;
+
+
+  // Coarse continent outlines expressed as longitude/latitude polygons.
+  // The geometry is intentionally lightweight so rotation remains smooth.
+  const earthLandPolygons = [
+    // North America
+    [[-168,72],[-160,70],[-152,67],[-145,61],[-138,59],[-132,55],[-128,51],[-125,48],[-124,43],[-122,38],[-117,33],[-112,31],[-106,31],[-102,28],[-97,26],[-94,29],[-90,29],[-86,30],[-82,27],[-80,25],[-80,31],[-77,35],[-75,40],[-71,42],[-67,45],[-64,48],[-59,51],[-61,55],[-70,58],[-79,62],[-88,68],[-103,73],[-120,74],[-140,73],[-155,74],[-168,72]],
+    // Alaska
+    [[-168,72],[-178,67],[-170,61],[-160,58],[-151,59],[-143,61],[-140,67],[-150,70],[-168,72]],
+    // Greenland
+    [[-73,60],[-61,60],[-49,62],[-39,66],[-29,71],[-22,77],[-31,82],[-46,84],[-60,82],[-69,76],[-73,68],[-73,60]],
+    // South America
+    [[-81,12],[-75,11],[-70,8],[-66,3],[-61,-5],[-58,-12],[-54,-18],[-52,-24],[-55,-31],[-59,-38],[-63,-44],[-67,-51],[-72,-55],[-75,-48],[-74,-39],[-71,-31],[-70,-20],[-75,-13],[-78,-5],[-80,3],[-81,12]],
+    // Africa
+    [[-17,37],[-9,36],[-5,36],[0,37],[8,36],[15,34],[24,32],[32,31],[35,27],[40,22],[44,12],[51,11],[50,4],[46,-2],[43,-11],[39,-17],[35,-25],[29,-31],[20,-35],[12,-35],[5,-31],[-1,-24],[-6,-15],[-11,-5],[-15,5],[-17,15],[-16,25],[-17,37]],
+    // Europe / western Asia mainland
+    [[-10,36],[-6,43],[-1,46],[4,49],[9,54],[14,55],[19,59],[25,60],[30,65],[40,68],[55,70],[70,72],[90,72],[105,69],[120,65],[135,60],[150,55],[165,50],[170,45],[160,40],[145,38],[130,34],[120,30],[110,23],[103,18],[100,10],[94,8],[88,20],[80,25],[70,27],[60,31],[50,35],[43,41],[35,44],[28,42],[23,39],[18,41],[13,44],[8,44],[3,43],[-2,43],[-6,40],[-10,36]],
+    // Scandinavia
+    [[5,58],[8,63],[13,68],[20,71],[27,71],[31,67],[27,62],[22,58],[17,56],[11,57],[5,58]],
+    // Great Britain — denser outline so Britain remains recognisable when enlarged
+    [[-5.72,50.06],[-5.18,50.14],[-4.62,50.34],[-4.18,50.31],[-3.55,50.22],[-3.05,50.38],[-2.48,50.55],[-1.92,50.67],[-1.31,50.77],[-0.72,50.78],[-0.10,50.79],[0.53,50.91],[1.12,51.12],[1.45,51.35],[1.32,51.70],[1.02,52.02],[0.48,52.17],[0.05,52.54],[-0.32,52.91],[-0.86,53.05],[-1.36,53.38],[-1.61,53.78],[-2.18,54.08],[-2.63,54.45],[-3.06,54.98],[-3.23,55.38],[-2.84,55.74],[-2.13,55.91],[-1.78,56.18],[-2.18,56.54],[-2.64,56.68],[-2.93,57.02],[-2.55,57.44],[-1.88,57.54],[-1.73,57.70],[-2.42,57.94],[-3.02,58.12],[-3.72,58.38],[-4.43,58.57],[-5.05,58.50],[-5.36,58.18],[-5.05,57.80],[-5.50,57.36],[-5.82,56.91],[-6.05,56.53],[-5.62,56.15],[-5.17,55.89],[-4.83,55.53],[-4.65,55.05],[-4.90,54.66],[-4.46,54.36],[-4.13,54.03],[-3.64,53.80],[-3.17,53.42],[-3.05,53.05],[-3.38,52.75],[-4.08,52.61],[-4.54,52.25],[-4.70,51.88],[-5.12,51.62],[-5.43,51.25],[-5.18,50.88],[-5.45,50.53],[-5.72,50.06]],
+    // Ireland — separate, denser outline
+    [[-10.48,51.45],[-9.84,51.45],[-9.30,51.55],[-8.73,51.57],[-8.22,51.72],[-7.55,52.02],[-6.95,52.09],[-6.35,52.18],[-6.02,52.58],[-6.12,53.05],[-6.02,53.48],[-6.18,53.91],[-6.06,54.28],[-6.48,54.55],[-7.08,54.67],[-7.55,55.05],[-8.18,55.22],[-8.82,55.17],[-9.31,54.86],[-9.78,54.35],[-10.05,53.85],[-10.18,53.34],[-9.90,52.91],[-10.22,52.55],[-10.48,52.08],[-10.48,51.45]],
+    // Iceland
+    [[-24.5,63.4],[-21.5,63.3],[-18.0,64.0],[-14.0,65.0],[-14.5,66.3],[-18.5,66.6],[-22.5,66.0],[-24.5,63.4]],
+    // Arabian Peninsula
+    [[35,31],[42,31],[48,29],[56,25],[57,20],[53,16],[49,12],[43,13],[39,19],[35,25],[35,31]],
+    // India
+    [[68,24],[72,29],[78,31],[84,27],[89,23],[88,18],[84,12],[80,8],[77,8],[73,16],[68,24]],
+    // SE Asia
+    [[94,22],[101,21],[106,17],[109,12],[106,7],[103,2],[100,5],[98,11],[94,16],[94,22]],
+    // Japan
+    [[130,31],[132,34],[135,35],[137,38],[140,41],[143,44],[145,43],[143,38],[140,35],[136,33],[132,31],[130,31]],
+    // Australia
+    [[113,-11],[121,-14],[129,-13],[137,-16],[144,-18],[153,-27],[153,-33],[146,-39],[138,-39],[131,-35],[124,-34],[116,-28],[113,-21],[113,-11]],
+    // New Zealand
+    [[166,-34],[173,-36],[176,-41],[172,-46],[168,-45],[166,-40],[166,-34]],
+    // Madagascar
+    [[49,-12],[51,-16],[50,-22],[47,-26],[44,-24],[44,-18],[46,-14],[49,-12]],
+    // Antarctica
+    [[-180,-70],[-160,-72],[-140,-73],[-120,-75],[-100,-73],[-80,-75],[-60,-77],[-40,-74],[-20,-76],[0,-78],[20,-76],[40,-74],[60,-77],[80,-74],[100,-73],[120,-75],[140,-73],[160,-72],[180,-70],[180,-90],[-180,-90],[-180,-70]]
+  ];
+
+  const EARTH_SIDEREAL_DAY_MS = 86164.0905 * 1000;
+  const earthRotationEpochMs = Date.UTC(2026, 7, 28, 0, 0, 0);
+  const earthRotationEpochDeg = 336.0;
+
+  function earthRotationAngle(nowMs = simulationTimeMs) {
+    const elapsed = nowMs - earthRotationEpochMs;
+    return (earthRotationEpochDeg + elapsed / EARTH_SIDEREAL_DAY_MS * 360) % 360;
+  }
+
+  function projectGlobePoint(lonDeg, latDeg, rotationDeg) {
+    const lon = (lonDeg - rotationDeg) * Math.PI / 180;
+    const lat = latDeg * Math.PI / 180;
+    const cosLat = Math.cos(lat);
+    return {
+      x: cosLat * Math.sin(lon),
+      y: -Math.sin(lat),
+      z: cosLat * Math.cos(lon)
+    };
+  }
+
+
+  function renderEarthGrid(rotation) {
+    if (!earthGrid) return;
+
+    function makePath(points) {
+      let d = "";
+      let drawing = false;
+
+      for (const [lon, lat] of points) {
+        const p = projectGlobePoint(lon, lat, rotation);
+
+        if (p.z >= 0) {
+          if (!drawing) {
+            d += `M ${p.x.toFixed(4)} ${p.y.toFixed(4)} `;
+            drawing = true;
+          } else {
+            d += `L ${p.x.toFixed(4)} ${p.y.toFixed(4)} `;
+          }
+        } else {
+          drawing = false;
+        }
+      }
+
+      return d.trim();
+    }
+
+    const equator = [];
+    for (let lon = -180; lon <= 180; lon += 2) equator.push([lon, 0]);
+
+    const primeMeridian = [];
+    for (let lat = -90; lat <= 90; lat += 2) primeMeridian.push([0, lat]);
+
+    earthGrid.innerHTML = `
+      <path d="${makePath(equator)}"
+            fill="none"
+            stroke="rgba(255,255,255,0.18)"
+            stroke-width="0.010"></path>
+      <path d="${makePath(primeMeridian)}"
+            fill="none"
+            stroke="rgba(255,255,255,0.22)"
+            stroke-width="0.010"
+            stroke-dasharray="0.035 0.025"></path>
+    `;
+  }
+
+  function renderRotatingEarth() {
+    const rotation = earthRotationAngle();
+    renderEarthGrid(rotation);
+    let markup = "";
+
+    for (const poly of earthLandPolygons) {
+      let d = "";
+      let drawing = false;
+
+      for (let i = 0; i < poly.length; i++) {
+        const p = projectGlobePoint(poly[i][0], poly[i][1], rotation);
+
+        if (p.z >= 0) {
+          if (!drawing) {
+            d += `M ${p.x.toFixed(4)} ${p.y.toFixed(4)} `;
+            drawing = true;
+          } else {
+            d += `L ${p.x.toFixed(4)} ${p.y.toFixed(4)} `;
+          }
+        } else {
+          drawing = false;
+        }
+      }
+
+      if (d) markup += `<path d="${d}"></path>`;
+    }
+
+    if (earthMap) earthMap.innerHTML = markup;
+  }
+
+
+  function updateEarthIllumination(earthPos) {
+    if (!earthNight) return;
+
+    // In this top-down ecliptic view the Sun lies in the screen plane.
+    // That means the visible globe is always split by a straight day/night
+    // terminator. Rotate the dark semicircle so it is always opposite the Sun.
+    const dx = sunWorldX - earthPos.x;
+    const dy = sunWorldY - earthPos.y;
+    const angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+
+    earthNight.setAttribute("transform", `rotate(${angleDeg.toFixed(3)} 0 0)`);
+  }
+
+  function updateOrbitGuides(z) {
+    if (!orbitOverlay) return;
+
+    orbitOverlay.setAttribute("viewBox", `0 0 ${window.innerWidth} ${window.innerHeight}`);
+
+    // Earth orbit ellipse
+    const earthA = earthSunDistance;
+    const earthB = earthA * Math.sqrt(1 - orbitalEccentricity * orbitalEccentricity);
+    const earthCenterX = sunWorldX - earthA * orbitalEccentricity;
+    const earthCenterY = sunWorldY;
+
+    earthOrbitGuide.setAttribute("cx", offsetX + earthCenterX * z);
+    earthOrbitGuide.setAttribute("cy", offsetY + earthCenterY * z);
+    earthOrbitGuide.setAttribute("rx", Math.abs(earthA * z));
+    earthOrbitGuide.setAttribute("ry", Math.abs(earthB * z));
+    earthOrbitGuide.removeAttribute("transform");
+
+    // Mercury orbit ellipse, rotated in screen space.
+    const mercuryA = mercurySemiMajorAxis;
+    const mercuryB = mercuryA * Math.sqrt(1 - mercuryEccentricity * mercuryEccentricity);
+    const mercuryArgument = 0.52;
+
+    const centreOffsetX0 = -mercuryA * mercuryEccentricity;
+    const centreOffsetY0 = 0;
+    const c = Math.cos(mercuryArgument);
+    const s = Math.sin(mercuryArgument);
+    const mercuryCenterWorldX = sunWorldX + centreOffsetX0 * c - centreOffsetY0 * s;
+    const mercuryCenterWorldY = sunWorldY + centreOffsetX0 * s + centreOffsetY0 * c;
+
+    const mcx = offsetX + mercuryCenterWorldX * z;
+    const mcy = offsetY + mercuryCenterWorldY * z;
+
+    mercuryOrbitGuide.setAttribute("cx", mcx);
+    mercuryOrbitGuide.setAttribute("cy", mcy);
+    mercuryOrbitGuide.setAttribute("rx", Math.abs(mercuryA * z));
+    mercuryOrbitGuide.setAttribute("ry", Math.abs(mercuryB * z));
+    mercuryOrbitGuide.setAttribute(
+      "transform",
+      `rotate(${mercuryArgument * 180 / Math.PI} ${mcx} ${mcy})`
+    );
+
+    // Moon's mean circular orbit around the moving Earth.
+    const earthPosForMoonGuide = getEarthWorldPosition();
+    moonOrbitGuide.setAttribute("cx", offsetX + earthPosForMoonGuide.x * z);
+    moonOrbitGuide.setAttribute("cy", offsetY + earthPosForMoonGuide.y * z);
+    moonOrbitGuide.setAttribute("r", Math.abs(moonOrbitRadius * z));
+  }
+
+  // Mercury, using the same physical scale.
+  // Diameter ≈ 4,879 km; semimajor axis ≈ 57.91 million km.
+  const mercuryDiameter = earthDiameter * (4879.4 / 12742);
+  const mercurySemiMajorAxis = earthDiameter * (57909227 / 12742);
+  const mercuryEccentricity = 0.205630;
+  const mercuryOrbitalPeriodDays = 87.9691;
+
+  // Approximate perihelion anchor. This fixes Mercury's orbital phase to the calendar.
+  const mercuryPerihelionEpochMs = Date.UTC(2026, 6, 20, 0, 0, 0);
+
+  function getMercuryWorldPosition(nowMs = simulationTimeMs) {
+    const elapsedDays = (nowMs - mercuryPerihelionEpochMs) / 86400000;
+
+    let M = 2 * Math.PI * (elapsedDays / mercuryOrbitalPeriodDays);
+    M = ((M % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+
+    const E = solveKepler(M, mercuryEccentricity);
+    const a = mercurySemiMajorAxis;
+    const e = mercuryEccentricity;
+    const b = a * Math.sqrt(1 - e * e);
+
+    // Rotate Mercury's ellipse a little relative to Earth's purely for a useful
+    // ecliptic-plane layout while preserving size, distance and timing.
+    const argument = 0.52;
+    const x0 = a * (Math.cos(E) - e);
+    const y0 = b * Math.sin(E);
+
+    const x = x0 * Math.cos(argument) - y0 * Math.sin(argument);
+    const y = x0 * Math.sin(argument) + y0 * Math.cos(argument);
+
+    return {
+      x: sunWorldX + x,
+      y: sunWorldY + y
+    };
+  }
+
+  // Moon at the same physical scale as Earth and Sun.
+  // Diameter ≈ 27.3% of Earth's; mean distance ≈ 30.15 Earth diameters.
+  const moonDiameter = earthDiameter * 0.2727;      // ≈ 1.091 world-units
+  const moonOrbitRadius = earthDiameter * 30.15;    // ≈ 120.6 world-units
+  const moonOrbitalPeriodDays = 27.321661;
+
+  // Lunar phase anchor calibrated to the 28 Aug 2026 partial lunar eclipse.
+  // Maximum eclipse was 04:12 UTC (05:12 BST), when the Moon was on the
+  // anti-solar side of Earth. This synchronises the model with the real calendar.
+  const moonEpochMs = Date.UTC(2026, 7, 28, 4, 12, 0);
+
+  function getMoonWorldPosition(nowMs = simulationTimeMs) {
+    const earthPos = getEarthWorldPosition(nowMs);
+
+    const earthAtEpoch = getEarthWorldPosition(moonEpochMs);
+    const antiSolarAngleAtEpoch = Math.atan2(
+      earthAtEpoch.y - sunWorldY,
+      earthAtEpoch.x - sunWorldX
+    );
+
+    const elapsedDays = (nowMs - moonEpochMs) / 86400000;
+
+    let angle =
+      antiSolarAngleAtEpoch +
+      2 * Math.PI * (elapsedDays / moonOrbitalPeriodDays);
+
+    angle = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+
+    return {
+      x: earthPos.x + moonOrbitRadius * Math.cos(angle),
+      y: earthPos.y + moonOrbitRadius * Math.sin(angle)
+    };
+  }
+
+  function zoomValue() {
+    return Math.exp(zoomPower);
+  }
+
+  function updateHUD() {
+    const z = zoomValue();
+
+    updateOrbitGuides(z);
+
+    // Position of world origin (0,0) on the screen.
+    centreDot.style.left = offsetX + "px";
+    centreDot.style.top = offsetY + "px";
+
+    // Earth follows its real-time orbit around the Sun.
+    const earthPos = getEarthWorldPosition();
+    const earthScreenX = offsetX + earthPos.x * z;
+    const earthScreenY = offsetY + earthPos.y * z;
+    earth.style.left = earthScreenX + "px";
+    earth.style.top = earthScreenY + "px";
+    earth.style.width = earthDiameter + "px";
+    earth.style.height = earthDiameter + "px";
+    earth.style.transform = `translate(-50%, -50%) scale(${z})`;
+    renderRotatingEarth();
+    updateEarthIllumination(earthPos);
+
+    // Moon follows Earth while orbiting it in real time.
+    const moonPos = getMoonWorldPosition();
+    const moonScreenX = offsetX + moonPos.x * z;
+    const moonScreenY = offsetY + moonPos.y * z;
+    moon.style.left = moonScreenX + "px";
+    moon.style.top = moonScreenY + "px";
+
+    // Draw Moon internally at 200px for detail, then scale it down to its true world diameter.
+    const moonInternalSize = 200;
+    const moonScale = (moonDiameter / moonInternalSize) * z;
+    moon.style.width = moonInternalSize + "px";
+    moon.style.height = moonInternalSize + "px";
+    moon.style.transform = `translate(-50%, -50%) scale(${moonScale})`;
+
+    // Sun is at the real mean Earth-Sun distance and true diameter ratio.
+    const sunScreenX = offsetX + sunWorldX * z;
+    const sunScreenY = offsetY + sunWorldY * z;
+    sun.style.left = sunScreenX + "px";
+    sun.style.top = sunScreenY + "px";
+    sun.style.width = sunDiameter + "px";
+    sun.style.height = sunDiameter + "px";
+    sun.style.transform = `translate(-50%, -50%) scale(${z})`;
+
+    // Mercury orbits the Sun on its shorter, noticeably eccentric orbit.
+    const mercuryPos = getMercuryWorldPosition();
+    const mercuryScreenX = offsetX + mercuryPos.x * z;
+    const mercuryScreenY = offsetY + mercuryPos.y * z;
+    mercury.style.left = mercuryScreenX + "px";
+    mercury.style.top = mercuryScreenY + "px";
+    mercury.style.width = mercuryDiameter + "px";
+    mercury.style.height = mercuryDiameter + "px";
+    mercury.style.transform = `translate(-50%, -50%) scale(${z})`;
+
+    // Coordinates currently under the centre of the screen.
+    const worldX = (window.innerWidth / 2 - offsetX) / z;
+    const worldY = (window.innerHeight / 2 - offsetY) / z;
+
+    posReadout.textContent =
+      `x ${formatNumber(worldX)} · y ${formatNumber(worldY)}`;
+
+    zoomReadout.textContent = `zoom ${formatZoom(z)}`;
+
+    const simDate = new Date(simulationTimeMs);
+    simDateReadout.textContent = simDate.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  function formatNumber(n) {
+    const a = Math.abs(n);
+
+    if (a === 0) return "0";
+    if (a >= 1e9 || a < 0.001) return n.toExponential(3);
+
+    return n.toLocaleString(undefined, {
+      maximumFractionDigits: a < 10 ? 3 : a < 1000 ? 2 : 0
+    });
+  }
+
+  function formatZoom(z) {
+    if (z >= 0.001 && z < 1000000) {
+      return z.toLocaleString(undefined, { maximumFractionDigits: 3 }) + "×";
+    }
+    return z.toExponential(3) + "×";
+  }
+
+  function fadeHint() {
+    hint.style.opacity = "0";
+  }
+
+  space.addEventListener("pointerdown", e => {
+    space.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.size === 1) {
+      lastSingle = { x: e.clientX, y: e.clientY };
+      space.classList.add("dragging");
+    }
+
+    if (pointers.size === 2) {
+      const pts = [...pointers.values()];
+      lastPinchDistance = distance(pts[0], pts[1]);
+      lastPinchCenter = midpoint(pts[0], pts[1]);
+      lastSingle = null;
+    }
+
+    fadeHint();
+  });
+
+  space.addEventListener("pointermove", e => {
+    if (!pointers.has(e.pointerId)) return;
+
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.size === 1 && lastSingle) {
+      const p = [...pointers.values()][0];
+
+      offsetX += p.x - lastSingle.x;
+      offsetY += p.y - lastSingle.y;
+
+      lastSingle = { ...p };
+      updateHUD();
+      return;
+    }
+
+    if (pointers.size === 2) {
+      const pts = [...pointers.values()];
+      const d = distance(pts[0], pts[1]);
+      const c = midpoint(pts[0], pts[1]);
+
+      if (lastPinchDistance && lastPinchCenter) {
+        // Pan with the pinch centre.
+        offsetX += c.x - lastPinchCenter.x;
+        offsetY += c.y - lastPinchCenter.y;
+
+        // Zoom around the pinch centre.
+        const ratio = d / lastPinchDistance;
+        if (Number.isFinite(ratio) && ratio > 0) {
+          zoomAt(c.x, c.y, Math.log(ratio));
+        }
+      }
+
+      lastPinchDistance = d;
+      lastPinchCenter = c;
+      updateHUD();
+    }
+  });
+
+  function endPointer(e) {
+    pointers.delete(e.pointerId);
+
+    if (pointers.size === 0) {
+      lastSingle = null;
+      lastPinchDistance = null;
+      lastPinchCenter = null;
+      space.classList.remove("dragging");
+    } else if (pointers.size === 1) {
+      const p = [...pointers.values()][0];
+      lastSingle = { ...p };
+      lastPinchDistance = null;
+      lastPinchCenter = null;
+    }
+  }
+
+  space.addEventListener("pointerup", endPointer);
+  space.addEventListener("pointercancel", endPointer);
+
+  space.addEventListener("wheel", e => {
+    e.preventDefault();
+    fadeHint();
+
+    // Smooth logarithmic zoom.
+    const delta = -e.deltaY * 0.0015;
+    zoomAt(e.clientX, e.clientY, delta);
+    updateHUD();
+  }, { passive: false });
+
+  function zoomAt(screenX, screenY, deltaPower) {
+    const oldZoom = zoomValue();
+
+    // Keep the zoom exponent within an enormous but numerically sane range.
+    zoomPower = Math.max(-60, Math.min(60, zoomPower + deltaPower));
+
+    const newZoom = zoomValue();
+
+    // Preserve the world point under the cursor/fingers.
+    const worldX = (screenX - offsetX) / oldZoom;
+    const worldY = (screenY - offsetY) / oldZoom;
+
+    offsetX = screenX - worldX * newZoom;
+    offsetY = screenY - worldY * newZoom;
+  }
+
+  function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  function midpoint(a, b) {
+    return {
+      x: (a.x + b.x) / 2,
+      y: (a.y + b.y) / 2
+    };
+  }
+
+  timeScaleInput.addEventListener("input", () => {
+    advanceSimulationClock();
+    timeScale = sliderToTimeScale(timeScaleInput.value);
+    timeLabel.textContent = `Time ${formatTimeScale(timeScale)}`;
+    updateHUD();
+  });
+
+  // Prevent the navigation gesture handler from treating slider use as space-dragging.
+  ["pointerdown", "pointermove", "pointerup"].forEach(type => {
+    timeScaleInput.addEventListener(type, e => e.stopPropagation());
+  });
+
+
+  function centerOnWorldPoint(worldX, worldY) {
+    const z = zoomValue();
+    offsetX = window.innerWidth / 2 - worldX * z;
+    offsetY = window.innerHeight / 2 - worldY * z;
+    updateHUD();
+  }
+
+  findMenu.addEventListener("change", () => {
+    const choice = findMenu.value;
+
+    if (choice === "origin") {
+      centerOnWorldPoint(0, 0);
+    } else if (choice === "sun") {
+      centerOnWorldPoint(sunWorldX, sunWorldY);
+    } else if (choice === "mercury") {
+      const p = getMercuryWorldPosition();
+      centerOnWorldPoint(p.x, p.y);
+    } else if (choice === "earth") {
+      const p = getEarthWorldPosition();
+      centerOnWorldPoint(p.x, p.y);
+    } else if (choice === "moon") {
+      const p = getMoonWorldPosition();
+      centerOnWorldPoint(p.x, p.y);
+    }
+
+    // Return menu to its placeholder for easy repeated use.
+    findMenu.value = "";
+  });
+
+  ["pointerdown", "pointermove", "pointerup"].forEach(type => {
+    findMenu.addEventListener(type, e => e.stopPropagation());
+  });
+
+  window.addEventListener("resize", () => {
+    updateHUD();
+  });
+
+  updateHUD();
+
+  // Advance simulated time and redraw four times per second.
+  setInterval(() => {
+    advanceSimulationClock();
+    updateHUD();
+  }, 250);
+})();
+</script>
+
+</body>
+</html>
