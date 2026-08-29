@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Observable Universe 3D</title>
+<style>
+  html,body{
+    margin:0;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    color:#fff;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  #app{
+    position:fixed;
+    inset:0;
+  }
+  canvas{display:block;width:100%;height:100%}
+  .panel{
+    position:fixed;
+    left:12px;
+    right:12px;
+    top:12px;
+    z-index:10;
+    background:rgba(0,0,0,.58);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:12px;
+    padding:10px 12px;
+    backdrop-filter:blur(5px);
+    box-shadow:0 6px 28px rgba(0,0,0,.35);
+  }
+  .title{
+    font-weight:700;
+    letter-spacing:.04em;
+    margin-bottom:4px;
+  }
+  .sub{
+    opacity:.76;
+    font-size:12px;
+    line-height:1.35;
+  }
+  .controls{
+    position:fixed;
+    left:12px;
+    right:12px;
+    bottom:12px;
+    z-index:10;
+    background:rgba(0,0,0,.58);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:12px;
+    padding:10px 12px;
+    backdrop-filter:blur(5px);
+  }
+  .row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  button{
+    background:#151515;
+    color:#fff;
+    border:1px solid #555;
+    border-radius:9px;
+    padding:8px 10px;
+    font-weight:650;
+  }
+  button.active{
+    background:#f2d54a;
+    color:#111;
+    border-color:#f2d54a;
+  }
+  input[type=range]{
+    width:100%;
+  }
+  #stats{
+    margin-top:7px;
+    font-size:12px;
+    opacity:.88;
+  }
+  #hint{
+    position:fixed;
+    right:14px;
+    top:104px;
+    z-index:10;
+    font-size:11px;
+    opacity:.55;
+    text-align:right;
+    pointer-events:none;
+  }
+  .yellow{color:#f2d54a}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="panel">
+  <div class="title">THE VISIBLE UNIVERSE · 3D</div>
+  <div class="sub">
+    Earth is fixed at the centre. Drag to rotate. Pinch or wheel to zoom.
+    Distances are logarithmically compressed so that Alpha Centauri and the cosmic horizon can exist in the same view without becoming a practical joke. Simba is in here too.
+  </div>
+</div>
+
+<div id="hint">drag = rotate<br>pinch / wheel = zoom</div>
+
+<div class="controls">
+  <div class="row">
+    <button id="play">▶ TIME</button>
+    <button id="reset">NOW</button>
+    <span style="font-size:12px;opacity:.75">speed</span>
+    <input id="speed" type="range" min="0" max="8" step="1" value="3">
+  </div>
+  <div id="stats"></div>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js';
+
+const app = document.getElementById('app');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(58, innerWidth/innerHeight, 0.01, 500);
+camera.position.set(0, 2.8, 11);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+app.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.055;
+controls.minDistance = 2.5;
+controls.maxDistance = 60;
+
+scene.add(new THREE.AmbientLight(0xffffff, 1.25));
+
+const root = new THREE.Group();
+scene.add(root);
+
+// Log compression: maps enormous real distances into a usable scene radius.
+const CURRENT_HORIZON_GLY = 46.5;
+const SCENE_HORIZON_RADIUS = 8.0;
+function compressedRadius(distanceLy, horizonGly=CURRENT_HORIZON_GLY){
+  const d = Math.max(distanceLy, 1e-9);
+  const horizonLy = horizonGly * 1e9;
+  return SCENE_HORIZON_RADIUS * Math.log10(1 + d) / Math.log10(1 + horizonLy);
+}
+
+// Cosmic horizon shell
+const shellGeo = new THREE.SphereGeometry(SCENE_HORIZON_RADIUS, 48, 32);
+const shellMat = new THREE.MeshBasicMaterial({
+  color:0x7aa7ff,
+  transparent:true,
+  opacity:0.055,
+  wireframe:true
+});
+const shell = new THREE.Mesh(shellGeo, shellMat);
+root.add(shell);
+
+// Slight yellow inner halo for visual identity
+const haloMat = new THREE.MeshBasicMaterial({
+  color:0xf2d54a,
+  transparent:true,
+  opacity:0.035,
+  side:THREE.BackSide
+});
+const halo = new THREE.Mesh(new THREE.SphereGeometry(SCENE_HORIZON_RADIUS*0.985, 36, 24), haloMat);
+root.add(halo);
+
+// Earth / observer
+const earth = new THREE.Mesh(
+  new THREE.SphereGeometry(0.12, 24, 16),
+  new THREE.MeshBasicMaterial({color:0xffffff})
+);
+root.add(earth);
+
+// Axis cross for orientation
+const axisMat = new THREE.LineBasicMaterial({color:0x555555, transparent:true, opacity:.35});
+for(const axis of ['x','y','z']){
+  const pts = [new THREE.Vector3(), new THREE.Vector3()];
+  pts[0][axis] = -SCENE_HORIZON_RADIUS;
+  pts[1][axis] = SCENE_HORIZON_RADIUS;
+  root.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), axisMat));
+}
+
+// Alpha Centauri at 4.2465 ly, arbitrary sky-direction approximation for this visual.
+const alphaR = compressedRadius(4.2465);
+const alphaDir = new THREE.Vector3(0.82, -0.22, 0.53).normalize();
+const alphaPos = alphaDir.clone().multiplyScalar(alphaR);
+const alpha = new THREE.Mesh(
+  new THREE.SphereGeometry(0.09, 20, 14),
+  new THREE.MeshBasicMaterial({color:0xf2d54a})
+);
+alpha.position.copy(alphaPos);
+root.add(alpha);
+
+// Nearby galaxy markers
+const objects = [
+  {name:'Sirius', ly:8.6, dir:[-0.55,0.43,0.71], c:0xffffff},
+  {name:'Betelgeuse', ly:642, dir:[0.20,0.81,-0.55], c:0xffb07a},
+  {name:'Andromeda Galaxy', ly:2.54e6, dir:[-0.77,0.18,-0.61], c:0xbfd4ff},
+  {name:'Virgo Cluster', ly:5.38e7, dir:[0.63,-0.55,-0.55], c:0xb7c7ff}
+];
+for(const o of objects){
+  const p = new THREE.Vector3(...o.dir).normalize().multiplyScalar(compressedRadius(o.ly));
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.055,14,10),
+    new THREE.MeshBasicMaterial({color:o.c})
+  );
+  m.position.copy(p);
+  root.add(m);
+}
+
+// Star / galaxy background, seeded for stable layout
+function rng(seed){
+  let t = seed >>> 0;
+  return ()=> {
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ t >>> 15, 1 | t);
+    r ^= r + Math.imul(r ^ r >>> 7, 61 | r);
+    return ((r ^ r >>> 14) >>> 0) / 4294967296;
+  }
+}
+const random = rng(1963);
+const count = 7000;
+const arr = new Float32Array(count*3);
+for(let i=0;i<count;i++){
+  const u = random();
+  const v = random();
+  const w = random();
+  const theta = 2*Math.PI*u;
+  const z = 2*v-1;
+  const s = Math.sqrt(1-z*z);
+  // distribute toward outer universe, then keep inside horizon
+  const r = SCENE_HORIZON_RADIUS * Math.pow(w, 0.42);
+  arr[i*3] = r*s*Math.cos(theta);
+  arr[i*3+1] = r*z;
+  arr[i*3+2] = r*s*Math.sin(theta);
+}
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+const starMat = new THREE.PointsMaterial({
+  color:0xffffff,
+  size:0.018,
+  sizeAttenuation:true,
+  transparent:true,
+  opacity:0.72
+});
+root.add(new THREE.Points(starGeo, starMat));
+
+// Labels as CSS-like sprites via canvas textures
+function label(text, color='#ffffff', scale=0.62){
+  const c=document.createElement('canvas');
+  const ctx=c.getContext('2d');
+  c.width=512; c.height=96;
+  ctx.font='bold 38px system-ui, sans-serif';
+  ctx.fillStyle=color;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(text,256,48);
+  const tex=new THREE.CanvasTexture(c);
+  tex.minFilter=THREE.LinearFilter;
+  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+  spr.scale.set(scale*3.3, scale*.62, 1);
+  return spr;
+}
+const earthLabel=label('EARTH · YOU ARE HERE','#ffffff',.55);
+earthLabel.position.set(0,.36,0);
+root.add(earthLabel);
+
+const alphaLabel=label('ALPHA CENTAURI · 4.2465 ly','#f2d54a',.48);
+alphaLabel.position.copy(alphaPos).add(new THREE.Vector3(0,.24,0));
+root.add(alphaLabel);
+
+const horizonLabel=label('OBSERVABLE LIMIT · NOW ≈ 46.5 Gly radius','#8fb2ff',.46);
+horizonLabel.position.set(0,SCENE_HORIZON_RADIUS+.38,0);
+root.add(horizonLabel);
+
+// SIMBA · 3-D Easter egg.
+// Original X and Y are preserved exactly from the earlier universe page.
+const simbaWorldX = 17976.8246236122;
+const simbaWorldY = -37470.3745070261;
+const simbaWorldZ = 31415.9265358979;
+
+// Preserve the exact 3-D direction of those coordinates.
+// The display radius is intentionally compressed so Simba remains discoverable.
+const simbaDirection = new THREE.Vector3(
+  simbaWorldX,
+  simbaWorldY,
+  simbaWorldZ
+).normalize();
+
+const simbaDisplayRadius = 0.92;
+const simbaPosition = simbaDirection.clone().multiplyScalar(simbaDisplayRadius);
+
+// Tiny white marker remains even if simba.jpg is not present.
+const simbaMarker = new THREE.Mesh(
+  new THREE.SphereGeometry(0.022, 14, 10),
+  new THREE.MeshBasicMaterial({color:0xffffff})
+);
+simbaMarker.position.copy(simbaPosition);
+root.add(simbaMarker);
+
+// Put simba.jpg in the same folder as this HTML file.
+let simbaSprite;
+const simbaTexture = new THREE.TextureLoader().load(
+  'simba.jpg',
+  tex => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    if (simbaSprite) simbaSprite.visible = true;
+  },
+  undefined,
+  () => {
+    if (simbaSprite) simbaSprite.visible = false;
+  }
+);
+
+const simbaSpriteMaterial = new THREE.SpriteMaterial({
+  map: simbaTexture,
+  transparent: true,
+  depthTest: true
+});
+simbaSprite = new THREE.Sprite(simbaSpriteMaterial);
+simbaSprite.position.copy(simbaPosition);
+simbaSprite.scale.set(0.16, 0.21, 1);
+simbaSprite.visible = false;
+root.add(simbaSprite);
+
+// Faint label, because he is supposed to be hidden.
+const simbaLabel = label(
+  'SIMBA · x 17976.8246 · y −37470.3745 · z 31415.9265',
+  '#ffffff',
+  .31
+);
+simbaLabel.position.copy(simbaPosition).add(new THREE.Vector3(0,.13,0));
+simbaLabel.material.opacity = 0.30;
+root.add(simbaLabel);
+
+// Time simulation
+let playing=false;
+let yearsAhead=0;
+let last=performance.now();
+const speedInput=document.getElementById('speed');
+const playBtn=document.getElementById('play');
+const resetBtn=document.getElementById('reset');
+const stats=document.getElementById('stats');
+
+const speeds = [0,1e3,1e5,1e6,1e7,1e8,1e9,5e9,1e10]; // simulated years per real second
+
+playBtn.onclick=()=>{
+  playing=!playing;
+  playBtn.classList.toggle('active', playing);
+  playBtn.textContent = playing ? '❚❚ TIME' : '▶ TIME';
+};
+resetBtn.onclick=()=>{
+  yearsAhead=0;
+  playing=false;
+  playBtn.classList.remove('active');
+  playBtn.textContent='▶ TIME';
+};
+
+function horizonAt(years){
+  // Deliberately simplified educational approximation:
+  // expands the observable radius with future cosmic time, not a precision ΛCDM solver.
+  const addGly = years / 1e9;
+  return CURRENT_HORIZON_GLY + addGly;
+}
+
+function renderStats(){
+  const h=horizonAt(yearsAhead);
+  const scale=h/CURRENT_HORIZON_GLY;
+  shell.scale.setScalar(scale);
+  halo.scale.setScalar(scale);
+  stats.innerHTML =
+    `cosmic fast-forward: <span class="yellow">${yearsAhead.toExponential(2)} years</span> · `+
+    `illustrative observable radius: <span class="yellow">${h.toFixed(2)} Gly</span>`;
+}
+
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=Math.min((now-last)/1000,.08);
+  last=now;
+  if(playing){
+    const speed=speeds[+speedInput.value];
+    yearsAhead += speed*dt;
+  }
+  renderStats();
+  controls.update();
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
