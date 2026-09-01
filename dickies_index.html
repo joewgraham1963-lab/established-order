@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html>
+<head>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dickinson's Clock</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: Futura, "Century Gothic", Arial, sans-serif;
+      font-size: 48px;
+      background: radial-gradient(
+  circle at center,
+  #666666 0%,
+  #5c5c5c 30%,
+  #444444 70%
+);
+      transition: background-color 20s ease;
+      color: #111;
+    }
+#face {
+    width: 250px;
+    height: 250px;
+    border: 4px solid black;
+    border-radius: 50%;
+    margin: 0 auto 40px auto;
+    position: relative;
+    background-color: #848482;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    transform-origin: 50% 50%;
+    transition: transform 0.12s linear;
+}
+#facePlate {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background-color: rgba(132, 132, 130, 0.72);
+    z-index: 1;
+    transition: background-color 20s ease;
+}
+#pivot {
+    width: 12px;
+    height: 12px;
+    background: black;
+    border: 2px solid #C0C0C0;
+box-sizing: border-box;
+    border-radius: 50%;
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+} #secondHand {
+    width: 2px;
+    height: 105px;
+    background: red;
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotate(0deg);
+
+    margin-top: -105px;
+} #minuteHand {
+    width: 5px;
+    height: 90px;
+    background: black;
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotate(0deg);
+
+    margin-top: -90px;
+}#hourHand {
+    width: 7px;
+    height: 65px;
+    background: black;
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotate(0deg);
+
+    margin-top: -65px;
+}.marker {
+    position: absolute;
+    width: 4px;
+    height: 18px;
+    background: black;
+
+    left: 50%;
+    top: 8px;
+
+    transform-origin: 50% 117px;
+    z-index: 2;
+}.m12 { transform: translateX(-50%) rotate(0deg); }
+.m1  { transform: translateX(-50%) rotate(30deg); }
+.m2  { transform: translateX(-50%) rotate(60deg); }
+.m3  { transform: translateX(-50%) rotate(90deg); }
+.m4  { transform: translateX(-50%) rotate(120deg); }
+.m5  { transform: translateX(-50%) rotate(150deg); }
+.m6  { transform: translateX(-50%) rotate(180deg); }
+.m7  { transform: translateX(-50%) rotate(210deg); }
+.m8  { transform: translateX(-50%) rotate(240deg); }
+.m9  { transform: translateX(-50%) rotate(270deg); }
+.m10 { transform: translateX(-50%) rotate(300deg); }
+.m11 { transform: translateX(-50%) rotate(330deg); }#hourHand,
+#minuteHand,
+#secondHand {
+    z-index: 3;
+}
+
+#pivot {
+    z-index: 8;
+}#logo {
+    position: absolute;
+    top: 38px;
+    width: 100%;
+    text-align: center;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    color: black;
+    z-index: 2;
+}
+
+#tagline {
+    position: absolute;
+    top: 58px;
+    width: 100%;
+    text-align: center;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: #333333;
+    z-index: 2;
+}
+
+#dayDate {
+  position: absolute;
+  top: 66%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #222;
+  background: #ffffff;
+  border: 1px solid #222;
+  border-radius: 2px;
+  padding: 2px 5px;
+  letter-spacing: 0.5px;
+  z-index: 6;
+}
+#clockContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#moon {
+    width: 32px;
+    height: 32px;
+    background: #111;
+    border: 1px solid black;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 10;
+    overflow: hidden;
+}
+
+#moonLight {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: white;
+    transform-origin: center;
+}
+
+#sun {
+    width: 32px;
+    height: 32px;
+    background: gold;
+    border: 1px solid black;
+    border-radius: 50%;
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+
+    z-index: 9;
+}#northLabel {
+    font-size: 16px;
+    font-weight: bold;
+    color: #111;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+}
+#clock {
+  font-size: 24px;
+  margin-top: 10px;
+  opacity: 0.65;
+  } 
+
+#compassPanel {
+  margin-top: 8px;
+  text-align: center;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #dddddd;
+}
+#compassButton {
+  font: inherit;
+  font-weight: bold;
+  padding: 5px 9px;
+  border: 1px solid #222;
+  border-radius: 4px;
+  background: #848482;
+  color: #111;
+}
+#compassStatus {
+  margin-top: 4px;
+  min-height: 15px;
+  opacity: 0.85;
+}
+
+@media (max-width: 600px) {
+  #clockContainer {
+    transform: scale(1.28);
+    transform-origin: center;
+  }
+}  
+  </style>
+</head>
+
+<body>
+
+
+<div id="clockContainer">
+
+    <div id="northLabel">N</div>
+
+    
+   <div id="face">
+    <div id="facePlate"></div> 
+    <div class="marker m12"></div>
+    <div class="marker m1"></div>
+    <div class="marker m2"></div>
+    <div class="marker m3"></div>
+    <div class="marker m4"></div>
+    <div class="marker m5"></div>
+    <div class="marker m6"></div>
+    <div class="marker m7"></div>
+    <div class="marker m8"></div>
+    <div class="marker m9"></div>
+    <div class="marker m10"></div>
+    <div class="marker m11"></div>
+    <div id="logo">DICKINSON'S</div>
+<div id="tagline">Rhyl Deal</div>
+<div id="dayDate"></div>
+
+    <div id="hourHand"></div>
+    <div id="minuteHand"></div>
+    <div id="secondHand"></div>
+   <div id="moon"><div id="moonLight"></div></div>
+<div id="sun"></div>
+    <div id="pivot"></div>
+
+</div>
+    <div id="clock"></div>
+
+    <div id="compassPanel">
+      <button id="compassButton" type="button">COMPASS: OFF</button>
+      <div id="compassStatus">Manual north</div>
+    </div>
+
+
+
+<script>
+
+    /* Optional phone-compass support.
+       When enabled, Sun and Moon azimuths are shown relative to the
+       direction the top of the phone is physically pointing.
+       With compass OFF (or no sensor), Dickie behaves exactly as before. */
+    let compassEnabled = false;
+    let compassHeading = 0;
+    let compassHasReading = false;
+
+    const compassButton = document.getElementById("compassButton");
+    const compassStatus = document.getElementById("compassStatus");
+
+    function normaliseCompassDegrees(degrees) {
+      return ((degrees % 360) + 360) % 360;
+    }
+
+    function screenOrientationDegrees() {
+      if (screen.orientation && typeof screen.orientation.angle === "number") {
+        return screen.orientation.angle;
+      }
+      if (typeof window.orientation === "number") return window.orientation;
+      return 0;
+    }
+
+    function handleOrientation(event) {
+      let heading = null;
+
+      // Safari/iPhone supplies a ready-made compass heading.
+      if (typeof event.webkitCompassHeading === "number") {
+        heading = event.webkitCompassHeading;
+      }
+      // Android/Chrome absolute orientation: alpha is rotation around vertical.
+      else if (event.absolute === true && typeof event.alpha === "number") {
+        heading = 360 - event.alpha;
+      }
+      else if (typeof event.alpha === "number") {
+        // Some Android devices omit the absolute flag but still provide alpha.
+        heading = 360 - event.alpha;
+      }
+
+      if (heading === null || !Number.isFinite(heading)) return;
+
+      heading = normaliseCompassDegrees(heading + screenOrientationDegrees());
+
+      // Gentle smoothing stops the display twitching at every tiny sensor wobble.
+      if (!compassHasReading) {
+        compassHeading = heading;
+      } else {
+        let difference = ((heading - compassHeading + 540) % 360) - 180;
+        compassHeading = normaliseCompassDegrees(compassHeading + difference * 0.18);
+      }
+
+      compassHasReading = true;
+
+      if (compassEnabled) {
+        orientClockFace();
+        compassStatus.textContent =
+          "Heading " + Math.round(compassHeading) + "° • 12 points north";
+      }
+    }
+
+    function orientClockFace() {
+      const face = document.getElementById("face");
+      if (compassEnabled && compassHasReading) {
+        // If the top of the phone points 90° east, rotate the dial 90° left,
+        // placing the dial's 12 o'clock mark back onto true north.
+        face.style.transform = "rotate(" + (-compassHeading) + "deg)";
+      } else {
+        face.style.transform = "rotate(0deg)";
+      }
+    }
+
+    function startCompassListener() {
+      window.addEventListener("deviceorientationabsolute", handleOrientation, true);
+      window.addEventListener("deviceorientation", handleOrientation, true);
+    }
+
+    async function enableCompass() {
+      try {
+        // iOS requires permission from a button tap. Android normally does not.
+        if (
+          typeof DeviceOrientationEvent !== "undefined" &&
+          typeof DeviceOrientationEvent.requestPermission === "function"
+        ) {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission !== "granted") {
+            compassStatus.textContent = "Compass permission not granted";
+            return;
+          }
+        }
+
+        if (typeof DeviceOrientationEvent === "undefined") {
+          compassStatus.textContent = "No compass sensor available • manual north";
+          return;
+        }
+
+        compassEnabled = true;
+        compassHasReading = false;
+        startCompassListener();
+        compassButton.textContent = "COMPASS: ON";
+        compassStatus.textContent = "Move phone in a figure 8 to calibrate";
+      } catch (error) {
+        compassEnabled = false;
+        compassButton.textContent = "COMPASS: OFF";
+        compassStatus.textContent = "Compass unavailable • manual north";
+      }
+    }
+
+    function disableCompass() {
+      compassEnabled = false;
+      compassButton.textContent = "COMPASS: OFF";
+      compassStatus.textContent = "Manual north";
+      orientClockFace();
+    }
+
+    compassButton.addEventListener("click", function () {
+      if (compassEnabled) disableCompass();
+      else enableCompass();
+    });
+
+    function compassCounterRotation() {
+      return (compassEnabled && compassHasReading) ? compassHeading : 0;
+    }
+
+    function displayAzimuth(trueAzimuth) {
+      if (compassEnabled && compassHasReading) {
+        return normaliseCompassDegrees(trueAzimuth - compassHeading);
+      }
+      return trueAzimuth;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const facePlate = document.getElementById("facePlate");
+      const tagline = document.getElementById("tagline");
+
+const currentMinutes =
+    now.getHours() * 60 +
+    now.getMinutes();
+
+const dawnMinutes = 5 * 60 + 5;
+const sunsetMinutes = 21 * 60 + 36;
+
+if (
+    currentMinutes >= dawnMinutes &&
+    currentMinutes < sunsetMinutes
+) {
+    facePlate.style.backgroundColor = "rgba(132, 132, 130, 0.72)";
+    tagline.style.color = "#333333";
+    tagline.style.textShadow = "0 1px 1px rgba(255,255,255,0.35)";
+} else {
+    facePlate.style.backgroundColor = "rgba(48, 48, 47, 0.70)";
+    tagline.style.color = "#f2f2f2";
+    tagline.style.textShadow = "0 0 4px rgba(255,255,255,0.65)";
+}
+const weekday = now.toLocaleDateString("en-GB", {
+  weekday: "long"
+});
+
+const day = now.getDate();
+
+document.getElementById("dayDate").textContent =
+  `${weekday} ${day}`;
+      const clock = document.getElementById("clock");
+
+      clock.textContent = now.toLocaleTimeString();
+const seconds = now.getSeconds();
+const minutes = now.getMinutes();
+const minuteDegrees = (minutes * 6) + (seconds * 0.1);
+const hours = now.getHours() % 12;
+
+const hourDegrees =
+    (hours * 30) +
+    (minutes * 0.5) +
+    (seconds / 120);
+
+
+    document.getElementById("minuteHand").style.transform =
+    "translateX(-50%) rotate(" + (minuteDegrees + compassCounterRotation()) + "deg)";
+    document.getElementById("hourHand").style.transform =
+    "translateX(-50%) rotate(" + (hourDegrees + compassCounterRotation()) + "deg)";const moon = document.getElementById("moon");
+const moonLight = document.getElementById("moonLight");
+
+/* Offline Moon position for Rhyl. */
+function getMoonPosition(date, latitudeDegrees, longitudeDegrees) {
+  const radians = Math.PI / 180;
+  const J1970 = 2440588;
+  const J2000 = 2451545;
+  const julianDate = date.getTime() / 86400000 - 0.5 + J1970;
+  const daysSinceJ2000 = julianDate - J2000;
+  const obliquity = 23.4397 * radians;
+  const meanLongitude = (218.316 + 13.176396 * daysSinceJ2000) * radians;
+  const meanAnomaly = (134.963 + 13.064993 * daysSinceJ2000) * radians;
+  const meanDistance = (93.272 + 13.229350 * daysSinceJ2000) * radians;
+  const eclipticLongitude = meanLongitude + 6.289 * radians * Math.sin(meanAnomaly);
+  const eclipticLatitude = 5.128 * radians * Math.sin(meanDistance);
+  const rightAscension = Math.atan2(
+    Math.sin(eclipticLongitude) * Math.cos(obliquity) -
+      Math.tan(eclipticLatitude) * Math.sin(obliquity),
+    Math.cos(eclipticLongitude)
+  );
+  const declination = Math.asin(
+    Math.sin(eclipticLatitude) * Math.cos(obliquity) +
+      Math.cos(eclipticLatitude) * Math.sin(obliquity) * Math.sin(eclipticLongitude)
+  );
+  const observerLatitude = latitudeDegrees * radians;
+  const westLongitude = -longitudeDegrees * radians;
+  const siderealTime = (280.16 + 360.9856235 * daysSinceJ2000) * radians - westLongitude;
+  const hourAngle = siderealTime - rightAscension;
+  const altitude = Math.asin(
+    Math.sin(observerLatitude) * Math.sin(declination) +
+      Math.cos(observerLatitude) * Math.cos(declination) * Math.cos(hourAngle)
+  );
+  const southBasedAzimuth = Math.atan2(
+    Math.sin(hourAngle),
+    Math.cos(hourAngle) * Math.sin(observerLatitude) -
+      Math.tan(declination) * Math.cos(observerLatitude)
+  );
+  const azimuthDegrees = ((southBasedAzimuth / radians + 180) % 360 + 360) % 360;
+  return { azimuth: azimuthDegrees, altitude: altitude / radians };
+}
+
+const moonPosition = getMoonPosition(now, 53.32, -3.49);
+const moonAzimuth = moonPosition.azimuth;
+const moonAltitude = moonPosition.altitude;
+/*
+  Use the clock disc as the whole sky dome.
+
+  Horizon sits near the rim.
+  As the Moon moves either upward or downward away from the horizon,
+  she travels inward across the disc.
+*/
+const moonHorizonRadius = 109;
+const moonZenithRadius = 26;
+const displayedMoonAltitude = Math.max(-90, Math.min(90, moonAltitude));
+const moonRadius = moonHorizonRadius -
+  (Math.abs(displayedMoonAltitude) / 90) *
+  (moonHorizonRadius - moonZenithRadius);
+const moonX = Math.sin(moonAzimuth * Math.PI / 180) * moonRadius;
+const moonY = -Math.cos(moonAzimuth * Math.PI / 180) * moonRadius;
+moon.style.transform =
+  `translate(calc(-50% + ${moonX}px), calc(-50% + ${moonY}px))`;
+if (moonAltitude < 0) {
+  moon.style.zIndex = "0";
+  moon.style.opacity = "0.55";
+  moon.style.filter = "blur(0.35px)";
+} else {
+  moon.style.zIndex = "10";
+  moon.style.opacity = "1";
+  moon.style.filter = "none";
+}
+
+/* Basic offline Moon phase. */
+const knownNewMoon = new Date("2024-01-11T11:57:00Z");
+const moonCycleDays = 29.530588853;
+const daysSinceNewMoon = (now - knownNewMoon) / (1000 * 60 * 60 * 24);
+const moonPhase = ((daysSinceNewMoon / moonCycleDays) % 1 + 1) % 1;
+const phaseAngle = moonPhase * 2 * Math.PI;
+const illumination = (1 - Math.cos(phaseAngle)) / 2;
+const waxing = moonPhase < 0.5;
+const lightWidth = Math.max(0.04, illumination);
+moonLight.style.transform = `scaleX(${lightWidth})`;
+moonLight.style.transformOrigin = waxing ? "right center" : "left center";
+
+clock.style.color = "#dddddd";const sun = document.getElementById("sun");
+
+/*
+  Real solar azimuth for Rhyl.
+  Azimuth is measured clockwise from true north:
+  north = 0°, east = 90°, south = 180°, west = 270°.
+*/
+const latitude = 53.32;
+const longitude = -3.49;
+
+function degreesToRadians(degrees) {
+  return degrees * Math.PI / 180;
+}
+
+function radiansToDegrees(radians) {
+  return radians * 180 / Math.PI;
+}
+
+function normaliseDegrees(degrees) {
+  return ((degrees % 360) + 360) % 360;
+}
+
+function getSolarPosition(date, latitudeDegrees, longitudeDegrees) {
+  const julianDate = date.getTime() / 86400000 + 2440587.5;
+  const julianCentury = (julianDate - 2451545.0) / 36525;
+
+  const geometricMeanLongitude = normaliseDegrees(
+    280.46646 +
+    julianCentury * (36000.76983 + julianCentury * 0.0003032)
+  );
+
+  const geometricMeanAnomaly =
+    357.52911 +
+    julianCentury * (35999.05029 - 0.0001537 * julianCentury);
+
+  const eccentricity =
+    0.016708634 -
+    julianCentury * (0.000042037 + 0.0000001267 * julianCentury);
+
+  const anomalyRadians = degreesToRadians(geometricMeanAnomaly);
+
+  const equationOfCentre =
+    Math.sin(anomalyRadians) *
+      (1.914602 - julianCentury * (0.004817 + 0.000014 * julianCentury)) +
+    Math.sin(2 * anomalyRadians) *
+      (0.019993 - 0.000101 * julianCentury) +
+    Math.sin(3 * anomalyRadians) * 0.000289;
+
+  const trueLongitude = geometricMeanLongitude + equationOfCentre;
+
+  const omega = 125.04 - 1934.136 * julianCentury;
+  const apparentLongitude =
+    trueLongitude -
+    0.00569 -
+    0.00478 * Math.sin(degreesToRadians(omega));
+
+  const meanObliquity =
+    23 +
+    (26 +
+      (21.448 -
+        julianCentury *
+          (46.815 +
+            julianCentury * (0.00059 - julianCentury * 0.001813))) /
+        60) /
+      60;
+
+  const correctedObliquity =
+    meanObliquity +
+    0.00256 * Math.cos(degreesToRadians(omega));
+
+  const declination = Math.asin(
+    Math.sin(degreesToRadians(correctedObliquity)) *
+    Math.sin(degreesToRadians(apparentLongitude))
+  );
+
+  const y = Math.tan(degreesToRadians(correctedObliquity) / 2) ** 2;
+
+  const equationOfTime = 4 * radiansToDegrees(
+    y * Math.sin(2 * degreesToRadians(geometricMeanLongitude)) -
+    2 * eccentricity * Math.sin(anomalyRadians) +
+    4 * eccentricity * y *
+      Math.sin(anomalyRadians) *
+      Math.cos(2 * degreesToRadians(geometricMeanLongitude)) -
+    0.5 * y * y *
+      Math.sin(4 * degreesToRadians(geometricMeanLongitude)) -
+    1.25 * eccentricity * eccentricity *
+      Math.sin(2 * anomalyRadians)
+  );
+
+  const utcMinutes =
+    date.getUTCHours() * 60 +
+    date.getUTCMinutes() +
+    date.getUTCSeconds() / 60;
+
+  const trueSolarTime = normaliseDegrees(
+    (utcMinutes + equationOfTime + 4 * longitudeDegrees) / 4
+  ) * 4;
+
+  let hourAngle = trueSolarTime / 4 - 180;
+  if (hourAngle < -180) hourAngle += 360;
+
+  const latitudeRadians = degreesToRadians(latitudeDegrees);
+  const hourAngleRadians = degreesToRadians(hourAngle);
+
+const azimuth = radiansToDegrees(
+  Math.atan2(
+    Math.sin(hourAngleRadians),
+    Math.cos(hourAngleRadians) * Math.sin(latitudeRadians) -
+    Math.tan(declination) * Math.cos(latitudeRadians)
+  )
+) + 180;
+
+const altitude = radiansToDegrees(
+  Math.asin(
+    Math.sin(latitudeRadians) * Math.sin(declination) +
+    Math.cos(latitudeRadians) *
+    Math.cos(declination) *
+    Math.cos(hourAngleRadians)
+  )
+);
+
+return {
+  azimuth: normaliseDegrees(azimuth),
+  altitude: altitude
+};
+}
+
+const sunPosition =
+  getSolarPosition(now, latitude, longitude);
+
+const sunAngle = sunPosition.azimuth;
+const sunAltitude = sunPosition.altitude;
+
+/*
+  Use the same sky-dome logic for the Sun.
+
+  Horizon sits near the rim.
+  As the Sun rises or sinks away from the horizon,
+  it moves inward across the face.
+*/
+const displayAltitude =
+  Math.max(-90, Math.min(90, sunAltitude));
+
+const sunHorizonRadius = 119;
+const sunZenithRadius = 24;
+
+const sunRadius =
+  sunHorizonRadius -
+  (Math.abs(displayAltitude) / 90) *
+  (sunHorizonRadius - sunZenithRadius);
+
+const sunX =
+  Math.sin(degreesToRadians(sunAngle)) * sunRadius;
+
+const sunY =
+  -Math.cos(degreesToRadians(sunAngle)) * sunRadius;
+
+sun.style.transform =
+  `translate(calc(-50% + ${sunX}px), calc(-50% + ${sunY}px))`;
+
+if (sunAltitude < 0) {
+  /*
+    The face plate already darkens the hidden Sun.
+    Keep the Sun itself fairly strong so it remains traceable.
+  */
+  sun.style.zIndex = "0";
+  sun.style.opacity = "0.95";
+  sun.style.filter = "brightness(1.35)";
+  sun.style.boxShadow = "0 0 4px rgba(255,215,0,0.9)";
+} else {
+  sun.style.zIndex = "9";
+  sun.style.opacity = "1";
+  sun.style.filter = "none";
+  sun.style.boxShadow = "none";
+}  }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+    function animateSecondHand() {
+  const now = new Date();
+
+  const seconds =
+    now.getSeconds() +
+    now.getMilliseconds() / 1000;
+
+  const secondDegrees = seconds * 6;
+
+  document.getElementById("secondHand").style.transform =
+    "translateX(-50%) rotate(" + (secondDegrees + compassCounterRotation()) + "deg)";
+
+  requestAnimationFrame(animateSecondHand);
+}
+
+animateSecondHand();
+</script>
+
+
+</body>
+</html>
+
