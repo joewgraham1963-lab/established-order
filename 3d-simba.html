@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>3D Simba - Physical Scale Universe</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+html,body,#app,canvas{touch-action:none;overscroll-behavior:none;}
+canvas{display:block;-webkit-user-select:none;user-select:none}
+#top{position:fixed;left:10px;right:10px;top:10px;z-index:10;background:rgba(0,0,0,.58);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:9px 11px}
+#title{font-weight:700;font-size:15px}
+#sub,#stats{font-size:11px;opacity:.78;margin-top:3px}
+#bottom{position:fixed;left:10px;right:10px;bottom:10px;z-index:10;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:8px}
+select,button{background:#151515;color:#eee;border:1px solid #555;border-radius:8px;padding:7px 9px;font:inherit}
+button{font-weight:700}
+#zoom{flex:1;min-width:120px}
+#info{position:fixed;left:10px;bottom:126px;z-index:10;max-width:min(390px,calc(100vw - 20px));background:rgba(0,0,0,.64);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px 10px;font-size:11px;line-height:1.35}
+#badge{position:fixed;right:12px;top:96px;z-index:10;font-size:10px;opacity:.62;background:rgba(0,0,0,.45);padding:4px 6px;border-radius:7px}
+</style>
+</head>
+<body>
+<div id="top">
+  <div id="title">3D SIMBA · PHYSICAL SCALE</div>
+  <div id="sub">Sizes and distances use the same scale. Locator rings are signposts only.</div>
+  <div id="stats"></div>
+</div>
+<div id="badge"></div>
+<div id="info"></div>
+<div id="bottom">
+  <select id="dest">
+    <option>Earth</option><option>Moon</option><option>Venus</option><option>Sun</option><option>Mercury</option><option>Mars</option><option>Jupiter</option><option>Saturn</option><option>Pluto</option>
+    <option>Asteroid Belt</option><option>Kuiper Belt</option><option>Oort Cloud</option><option>Alpha Centauri</option><option>R Doradus</option><option>Stephenson 2-18</option><option>Polaris</option><option>Galactic Centre</option><option>Milky Way</option><option>Andromeda</option><option>IC 1101</option><option>Shirley's Galaxy</option><option>Simba</option><option>µ-Ziq</option><option>Cosmic Microwave Background</option><option>Observable Universe</option>
+  </select>
+  <button id="go">GO TO</button>
+  <input id="zoom" type="range" min="-5" max="16" step=".01" value="-3.25">
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+(function(){
+const AU_KM=149597870.7, LY_AU=63241.077, OBS_RADIUS_AU=46.5e9*LY_AU;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.00001,100000); camera.position.z=8;
+const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); renderer.setClearColor(0x000000,1); document.body.appendChild(renderer.domElement);
+const world=new THREE.Group(); scene.add(world);
+scene.add(new THREE.AmbientLight(0xffffff,.55));
+const pointLight=new THREE.PointLight(0xffffff,1.4,0,2); world.add(pointLight);
+
+const bgG=new THREE.BufferGeometry(), bg=[];
+for(let i=0;i<420;i++){const z=2*Math.random()-1,a=Math.random()*Math.PI*2,r=80,s=Math.sqrt(1-z*z);bg.push(r*s*Math.cos(a),r*s*Math.sin(a),r*z);}
+bgG.setAttribute('position',new THREE.Float32BufferAttribute(bg,3));
+scene.add(new THREE.Points(bgG,new THREE.PointsMaterial({color:0xaabbd0,size:.05,transparent:true,opacity:.22,depthWrite:false})));
+
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const radiusAU=km=>(km/2)/AU_KM;
+
+const pos={
+ Earth:V(0,0,0),
+ Sun:V(-1,0,0),
+ Moon:V(.00257,0,0),
+ Venus:V(0,0,0),
+ Mercury:V(0,0,0),
+ Mars:V(0,0,0),
+ Jupiter:V(0,0,0),
+ Saturn:V(0,0,0),
+ Pluto:V(-1-39.48,0,0),
+ Alpha:V(4.2465*LY_AU*.79,4.2465*LY_AU*.34,-4.2465*LY_AU*.51),
+ R_Doradus:V(178*LY_AU*.58,-178*LY_AU*.71,178*LY_AU*.40),
+ Stephenson:V(18900*LY_AU*.46,18900*LY_AU*.73,-18900*LY_AU*.505),
+ Polaris:V(433*LY_AU*.12,433*LY_AU*.96,433*LY_AU*.25),
+ GC:V(-26000*LY_AU,0,0),
+ Simba:V(.0013,.0011,-.0016),
+ Muziq:V(.012,0,0),
+ Andromeda:V(2.54e6*LY_AU*.82,2.54e6*LY_AU*.32,-2.54e6*LY_AU*.475),
+ IC1101:V(1.04e9*LY_AU*.61,-1.04e9*LY_AU*.34,1.04e9*LY_AU*.716),
+ ShirleyGalaxy:V(15e6*LY_AU*.73,15e6*LY_AU*.41,-15e6*LY_AU*.546)
+};
+
+// Live low-precision planetary ephemeris. The coefficients are JPL's
+// 1800–2050 approximate Keplerian elements, evaluated from the device clock.
+const JPL={
+ Mercury:[[0.38709927,0.00000037],[0.20563593,0.00001906],[7.00497902,-0.00594749],[252.25032350,149472.67411175],[77.45779628,0.16047689],[48.33076593,-0.12534081]],
+ Venus:[[0.72333566,0.00000390],[0.00677672,-0.00004107],[3.39467605,-0.00078890],[181.97909950,58517.81538729],[131.60246718,0.00268329],[76.67984255,-0.27769418]],
+ Earth:[[1.00000261,0.00000562],[0.01671123,-0.00004392],[-0.00001531,-0.01294668],[100.46457166,35999.37244981],[102.93768193,0.32327364],[0,0]],
+ Mars:[[1.52371034,0.00001847],[0.09339410,0.00007882],[1.84969142,-0.00813131],[-4.55343205,19140.30268499],[-23.94362959,0.44441088],[49.55953891,-0.29257343]],
+ Jupiter:[[5.20288700,-0.00011607],[0.04838624,-0.00013253],[1.30439695,-0.00183714],[34.39644051,3034.74612775],[14.72847983,0.21252668],[100.47390909,0.20469106]],
+ Saturn:[[9.53667594,-0.00125060],[0.05386179,-0.00050991],[2.48599187,0.00193609],[49.95424423,1222.49362201],[92.59887831,-0.41897216],[113.66242448,-0.28867794]]
+};
+const deg=Math.PI/180;
+function jdFromDate(d){return d.getTime()/86400000+2440587.5;}
+function helioPlanet(name,d){
+ const T=(jdFromDate(d)-2451545.0)/36525, q=JPL[name];
+ const a=q[0][0]+q[0][1]*T,e=q[1][0]+q[1][1]*T,I=(q[2][0]+q[2][1]*T)*deg;
+ const L=q[3][0]+q[3][1]*T,p=q[4][0]+q[4][1]*T,O=(q[5][0]+q[5][1]*T)*deg;
+ let M=((L-p+180)%360+360)%360-180; M*=deg;
+ let E=M;
+ for(let k=0;k<8;k++) E-=(E-e*Math.sin(E)-M)/(1-e*Math.cos(E));
+ const xp=a*(Math.cos(E)-e), yp=a*Math.sqrt(1-e*e)*Math.sin(E), w=(p-(q[5][0]+q[5][1]*T))*deg;
+ const cw=Math.cos(w),sw=Math.sin(w),cO=Math.cos(O),sO=Math.sin(O),cI=Math.cos(I),sI=Math.sin(I);
+ return V((cw*cO-sw*sO*cI)*xp+(-sw*cO-cw*sO*cI)*yp,
+          (cw*sO+sw*cO*cI)*xp+(-sw*sO+cw*cO*cI)*yp,
+          (sw*sI)*xp+(cw*sI)*yp);
+}
+// Compact lunar orbit model: current geocentric position with the main orbital perturbations.
+function updateMoonPosition(d){
+ const D=jdFromDate(d)-2451543.5, norm=a=>((a%360)+360)%360;
+ const N=norm(125.1228-.0529538083*D)*deg,i=5.1454*deg,w=norm(318.0634+.1643573223*D)*deg;
+ const a=60.2666,e=.054900,M=norm(115.3654+13.0649929509*D)*deg;
+ let E=M+e*Math.sin(M)*(1+e*Math.cos(M));for(let k=0;k<5;k++)E-=(E-e*Math.sin(E)-M)/(1-e*Math.cos(E));
+ let xv=a*(Math.cos(E)-e),yv=a*Math.sqrt(1-e*e)*Math.sin(E),v=Math.atan2(yv,xv),r=Math.hypot(xv,yv);
+ let xh=r*(Math.cos(N)*Math.cos(v+w)-Math.sin(N)*Math.sin(v+w)*Math.cos(i));
+ let yh=r*(Math.sin(N)*Math.cos(v+w)+Math.cos(N)*Math.sin(v+w)*Math.cos(i));
+ let zh=r*Math.sin(v+w)*Math.sin(i);
+ let lon=Math.atan2(yh,xh)/deg,lat=Math.atan2(zh,Math.hypot(xh,yh))/deg;
+ const Ms=norm(356.0470+.9856002585*D),ws=norm(282.9404+4.70935e-5*D),Ls=norm(Ms+ws),Lm=norm(N/deg+w/deg+M/deg),Dm=norm(Lm-Ls),F=norm(Lm-N/deg);
+ lon+=-1.274*Math.sin((M/deg-2*Dm)*deg)+.658*Math.sin(2*Dm*deg)-.186*Math.sin(Ms*deg)-.059*Math.sin((2*M/deg-2*Dm)*deg)-.057*Math.sin((M/deg-2*Dm+Ms)*deg)+.053*Math.sin((M/deg+2*Dm)*deg)+.046*Math.sin((2*Dm-Ms)*deg)+.041*Math.sin((M/deg-Ms)*deg)-.035*Math.sin(Dm*deg)-.031*Math.sin((M/deg+Ms)*deg)-.015*Math.sin((2*F-2*Dm)*deg)+.011*Math.sin((M/deg-4*Dm)*deg);
+ lat+=-.173*Math.sin((F-2*Dm)*deg)-.055*Math.sin((M/deg-F-2*Dm)*deg)-.046*Math.sin((M/deg+F-2*Dm)*deg)+.033*Math.sin((F+2*Dm)*deg)+.017*Math.sin((2*M/deg+F)*deg);
+ r+=-.58*Math.cos((M/deg-2*Dm)*deg)-.46*Math.cos(2*Dm*deg);
+ const rr=r*6378.14/AU_KM,L=lon*deg,B=lat*deg;pos.Moon.set(rr*Math.cos(B)*Math.cos(L),rr*Math.cos(B)*Math.sin(L),rr*Math.sin(B));
+}
+
+let lastEphemMinute=-1;
+function updatePlanetPositions(force=false){
+ const d=new Date(), minute=Math.floor(d.getTime()/60000); if(!force&&minute===lastEphemMinute)return; lastEphemMinute=minute;
+ const earthH=helioPlanet('Earth',d); pos.Earth.set(0,0,0); pos.Sun.copy(earthH).multiplyScalar(-1);
+ for(const n of ['Mercury','Venus','Mars','Jupiter','Saturn']) pos[n].copy(helioPlanet(n,d)).sub(earthH);
+ updateMoonPosition(d);
+ // Keep Pluto as the existing representative point for now; the six major planets above are live.
+}
+updatePlanetPositions(true);
+
+const data={
+ Earth:{p:pos.Earth,r:radiusAU(12742),c:0x3178c6,t:'Diameter 12,742 km'},
+ Moon:{p:pos.Moon,r:radiusAU(3474.8),c:0xb7b7b7,t:'Diameter 3,474.8 km · live approximate lunar position'},
+ Venus:{p:pos.Venus,r:radiusAU(12104),c:0xe6c27a,t:'Diameter 12,104 km · live approximate position'},
+ Sun:{p:pos.Sun,r:radiusAU(1392700),c:0xffd34d,t:'Diameter ~1.39 million km · distance 1 AU'},
+ Mercury:{p:pos.Mercury,r:radiusAU(4879),c:0xaaa59d,t:'Diameter 4,879 km · live approximate position'},
+ Mars:{p:pos.Mars,r:radiusAU(6779),c:0xc56f4f,t:'Diameter 6,779 km · live approximate position'},
+ Jupiter:{p:pos.Jupiter,r:radiusAU(139820),c:0xd9b38c,t:'Diameter ~139,820 km · live approximate position'},
+ Saturn:{p:pos.Saturn,r:radiusAU(116460),c:0xd8c38f,t:'Diameter ~116,460 km · live approximate position'},
+ Pluto:{p:pos.Pluto,r:radiusAU(2377),c:0xbda98e,t:'Diameter ~2,377 km'},
+ 'Alpha Centauri':{p:pos.Alpha,r:radiusAU(1700000),c:0xffe7ad,t:'Nearest star system · about 4.2465 light-years away'},
+ 'R Doradus':{p:pos.R_Doradus,r:radiusAU(415*1391400),c:0xff8a4c,t:'Orange-red giant · about 178 light-years away · radius roughly 415 Suns'},
+ 'Stephenson 2-18':{p:pos.Stephenson,r:radiusAU(2150*1391400),c:0xff4f32,t:'Extreme red supergiant candidate · about 18,900 light-years away · estimated radius roughly 2,150 Suns'},
+ Polaris:{p:pos.Polaris,r:radiusAU(52000000),c:0xfff3c7,t:'North Star · yellow-white Cepheid supergiant · about 433 light-years away'},
+ 'Galactic Centre':{p:pos.GC,r:2e-7,c:0xffb067,t:'Sagittarius A* · ~26,000 light-years away'},
+ Simba:{p:pos.Simba,r:radiusAU(1),c:0xffffff,t:'Easter egg · locator only'}
+};
+
+const meshes={},rings={};
+const stellarBodies=new Set(['Sun','Alpha Centauri','R Doradus','Stephenson 2-18','Polaris']);
+function addBody(n,d){
+ const seg=n==='Earth'?64:(n==='Moon'?48:(stellarBodies.has(n)?40:20));
+ const rows=n==='Earth'?40:(n==='Moon'?32:(stellarBodies.has(n)?28:20));
+ const isStar=stellarBodies.has(n);
+ const mat=isStar
+   ? new THREE.MeshPhongMaterial({color:d.c,emissive:d.c,emissiveIntensity:1.15,shininess:0})
+   : new THREE.MeshPhongMaterial({color:d.c,emissive:0x000000,emissiveIntensity:0});
+ const m=new THREE.Mesh(new THREE.SphereGeometry(1,seg,rows),mat);
+ m.userData.name=n; world.add(m); meshes[n]=m;
+ if(isStar){
+   // Visual glow only. The solid sphere itself remains at the physical radius.
+   const glow1=new THREE.Mesh(new THREE.SphereGeometry(1.10,24,16),new THREE.MeshBasicMaterial({color:d.c,transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.BackSide}));
+   const glow2=new THREE.Mesh(new THREE.SphereGeometry(1.24,24,16),new THREE.MeshBasicMaterial({color:d.c,transparent:true,opacity:.055,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.BackSide}));
+   m.add(glow1);m.add(glow2);
+ }
+ const ring=new THREE.Mesh(new THREE.RingGeometry(.75,1,32),new THREE.MeshBasicMaterial({color:d.c,transparent:true,opacity:.72,side:THREE.DoubleSide,depthWrite:false}));
+ world.add(ring); rings[n]=ring;
+}
+Object.keys(data).forEach(n=>addBody(n,data[n]));
+
+function makeEarthTexture(){
+ const c=document.createElement('canvas');c.width=1536;c.height=768;const x=c.getContext('2d');
+ const g=x.createLinearGradient(0,0,0,c.height);g.addColorStop(0,'#174b79');g.addColorStop(.5,'#1d6599');g.addColorStop(1,'#123f6c');x.fillStyle=g;x.fillRect(0,0,c.width,c.height);
+ // Hand-drawn coastlines: still lightweight, but less like Earth was assembled from seven cardboard cut-outs.
+ const polys=[
+ [[.035,.19],[.075,.12],[.13,.09],[.18,.12],[.215,.18],[.235,.25],[.205,.29],[.19,.35],[.155,.37],[.135,.43],[.105,.40],[.075,.34],[.045,.30]],
+ [[.18,.40],[.225,.43],[.255,.49],[.25,.58],[.225,.67],[.205,.78],[.175,.88],[.158,.79],[.165,.66],[.15,.56]],
+ [[.39,.17],[.43,.13],[.47,.15],[.49,.20],[.47,.25],[.43,.26],[.415,.31],[.38,.28]],
+ [[.45,.25],[.50,.22],[.56,.24],[.59,.31],[.575,.40],[.54,.47],[.51,.58],[.475,.65],[.445,.58],[.43,.47]],
+ [[.49,.15],[.57,.12],[.66,.14],[.73,.18],[.79,.24],[.84,.31],[.81,.37],[.75,.39],[.70,.35],[.65,.38],[.60,.34],[.56,.27]],
+ [[.76,.59],[.81,.57],[.86,.61],[.875,.68],[.84,.74],[.785,.73],[.75,.68]],
+ [[.335,.10],[.365,.075],[.39,.10],[.375,.15],[.345,.16]],
+ [[.455,.205],[.462,.19],[.469,.205],[.465,.23]],[[.472,.205],[.477,.19],[.482,.215]],
+ [[.625,.43],[.64,.42],[.65,.46],[.64,.50]],[[.86,.43],[.875,.44],[.87,.49],[.855,.48]]];
+ x.fillStyle='#66884c';x.strokeStyle='#9cb778';x.lineWidth=2;
+ for(const poly of polys){x.beginPath();poly.forEach((p,i)=>i?x.lineTo(p[0]*c.width,p[1]*c.height):x.moveTo(p[0]*c.width,p[1]*c.height));x.closePath();x.fill();x.stroke();}
+ // Polar ice and a restrained suggestion of terrain/cloud bands.
+ x.fillStyle='rgba(235,245,250,.72)';x.fillRect(0,0,c.width,22);x.fillRect(0,c.height-16,c.width,16);
+ x.strokeStyle='rgba(255,255,255,.16)';x.lineWidth=5;for(let i=0;i<13;i++){const y=(.15+i*.055)*c.height;x.beginPath();x.moveTo(0,y);for(let q=0;q<=24;q++){const xx=q*c.width/24;x.lineTo(xx,y+Math.sin(q*.9+i)*7);}x.stroke();}
+ const tex=new THREE.CanvasTexture(c);tex.wrapS=THREE.RepeatWrapping;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();return tex;
+}
+function makeMoonTexture(){
+ const c=document.createElement('canvas');c.width=768;c.height=384;const x=c.getContext('2d');x.fillStyle='#aaa9a3';x.fillRect(0,0,c.width,c.height);
+ let seed=1971;const rnd=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);
+ for(let i=0;i<240;i++){const cx=rnd()*c.width,cy=rnd()*c.height,r=2+rnd()*18;x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.fillStyle=`rgba(55,55,52,${.025+rnd()*.13})`;x.fill();x.beginPath();x.arc(cx-r*.18,cy-r*.18,r*.72,0,Math.PI*2);x.strokeStyle=`rgba(230,230,220,${.025+rnd()*.10})`;x.lineWidth=Math.max(1,r*.08);x.stroke();}
+ for(const m of [[.28,.43,.09],[.39,.33,.07],[.56,.39,.10],[.66,.53,.075],[.48,.59,.06]]){x.beginPath();x.arc(m[0]*c.width,m[1]*c.height,m[2]*c.height,0,Math.PI*2);x.fillStyle='rgba(75,76,73,.18)';x.fill();}
+ const tex=new THREE.CanvasTexture(c);tex.wrapS=THREE.RepeatWrapping;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();return tex;
+}
+meshes.Earth.material.map=makeEarthTexture();meshes.Earth.material.color.set(0xffffff);meshes.Earth.material.shininess=8;meshes.Earth.material.needsUpdate=true;
+meshes.Moon.material.map=makeMoonTexture();meshes.Moon.material.color.set(0xffffff);meshes.Moon.material.shininess=1;meshes.Moon.material.needsUpdate=true;
+const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(1,32,24),new THREE.MeshBasicMaterial({color:0x63a9ff,transparent:true,opacity:.16,side:THREE.BackSide,depthWrite:false})); world.add(atmosphere);
+const rhylMarker=new THREE.Mesh(new THREE.SphereGeometry(.022,10,8),new THREE.MeshBasicMaterial({color:0xffef70,depthWrite:false}));meshes.Earth.add(rhylMarker);
+{const la=53.319*deg,lo=-3.491*deg,r=1.025;rhylMarker.position.set(r*Math.cos(la)*Math.sin(lo),r*Math.sin(la),r*Math.cos(la)*Math.cos(lo));}
+
+function orbit(rad,col,op){
+ const pts=[]; for(let i=0;i<=180;i++){const a=i/180*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*rad,Math.sin(a)*rad,0));}
+ const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false})); world.add(l); return l;
+}
+const moonOrbit=orbit(.00257,0x8aa0b8,.22), earthOrbit=orbit(1,0x876f3f,.16), jupiterOrbit=orbit(5.204,0x8f735a,.12), saturnOrbit=orbit(9.58,0x8b8065,.11), muziqOrbit=orbit(.012,0x8fdfe5,.16);
+
+// Saturn's rings are also physically scaled, rather than given the usual science-poster treatment.
+const saturnRings=new THREE.Mesh(
+ new THREE.RingGeometry(1.24,2.33,64),
+ new THREE.MeshBasicMaterial({color:0xc9b98f,transparent:true,opacity:.52,side:THREE.DoubleSide,depthWrite:false})
+);
+saturnRings.rotation.x=THREE.MathUtils.degToRad(26.7); world.add(saturnRings);
+
+// Three small-body regions, kept physically scaled rather than turned into science-fiction gravel walls.
+function makeBelt(count,r0,r1,thickness,color,size,seed0){
+ const a=[];let seed=seed0>>>0;const rnd=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);
+ for(let i=0;i<count;i++){
+   const r=r0+(r1-r0)*rnd(),ang=rnd()*Math.PI*2,z=(rnd()-.5)*2*thickness;
+   a.push(r*Math.cos(ang),r*Math.sin(ang),z);
+ }
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(a,3));
+ const q=new THREE.Points(g,new THREE.PointsMaterial({color,size,transparent:true,opacity:.52,depthWrite:false}));world.add(q);return q;
+}
+const asteroidBelt=makeBelt(1500,2.1,3.3,.16,0xb89f78,.018,1201);
+const kuiperBelt=makeBelt(1900,30,50,4.2,0x9db7c6,.018,5042);
+
+// Oort Cloud: hypothetical, enormous and roughly spherical. The inner edge and outer limit are uncertain;
+// this schematic shell uses 2,000–100,000 AU simply to convey the accepted scale range.
+{
+ const a=[];let seed=987654321;const rnd=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);
+ for(let i=0;i<2400;i++){
+   const u=rnd(),r=2000*Math.pow(50,u),z=2*rnd()-1,ang=rnd()*Math.PI*2,q=Math.sqrt(1-z*z);
+   a.push(r*q*Math.cos(ang),r*q*Math.sin(ang),r*z);
+ }
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(a,3));
+ window._oortCloud=new THREE.Points(g,new THREE.PointsMaterial({color:0xadc3d6,size:.017,transparent:true,opacity:.34,depthWrite:false}));world.add(window._oortCloud);
+}
+const oortCloud=window._oortCloud;
+
+const MW_RADIUS_AU=60000*LY_AU, MW_HALF_AU=550*LY_AU, mwPhysical=[];
+// Milky Way: a deliberately flattened barred spiral. The old cloud was physically thin
+// but looked too round face-on, so make the bar, arms and vertical thickness unmistakable.
+const mwG=new THREE.BufferGeometry(); mwG.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(3000*3),3));
+for(let i=0;i<3000;i++){
+ const q=Math.pow(Math.random(),.72), r=q*MW_RADIUS_AU;
+ let x,y;
+ if(i<520){ // central bar
+   x=(Math.random()-.5)*2*14500*LY_AU; y=(Math.random()-.5)*2*2800*LY_AU;
+   const a=.38,xx=x*Math.cos(a)-y*Math.sin(a),yy=x*Math.sin(a)+y*Math.cos(a);x=xx;y=yy;
+ }else{
+   const arm=i%4, a=arm*Math.PI/2+q*7.6+(Math.random()-.5)*.32;
+   x=r*Math.cos(a); y=r*Math.sin(a);
+ }
+ const z=(Math.random()-.5)*2*MW_HALF_AU*(1-q*.7);
+ mwPhysical.push(V(pos.GC.x+x,y,z));
+}
+const mw=new THREE.Points(mwG,new THREE.PointsMaterial({color:0xb9c9ff,size:1.55,sizeAttenuation:false,transparent:true,opacity:.72,depthWrite:false})); mw.frustumCulled=false; world.add(mw);
+
+// Andromeda (M31): nearest major galaxy, about 2.54 million light-years away.
+const AND_RADIUS_AU=75000*LY_AU, andPhysical=[];
+const andG=new THREE.BufferGeometry(); andG.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(2200*3),3));
+for(let i=0;i<2200;i++){
+ const q=Math.pow(Math.random(),.68),r=q*AND_RADIUS_AU,arm=(i%2)*Math.PI,a=arm+q*7.0+(Math.random()-.5)*.42;
+ let x=r*Math.cos(a),y=r*Math.sin(a),z=(Math.random()-.5)*AND_RADIUS_AU*.035*(1-q*.55);
+ // Give M31 its familiar strongly inclined presentation while retaining genuine 3-D thickness.
+ const inc=THREE.MathUtils.degToRad(55), yy=y*Math.cos(inc)-z*Math.sin(inc),zz=y*Math.sin(inc)+z*Math.cos(inc);
+ andPhysical.push(V(pos.Andromeda.x+x,pos.Andromeda.y+yy,pos.Andromeda.z+zz));
+}
+const andromeda=new THREE.Points(andG,new THREE.PointsMaterial({color:0xd7d3c5,size:1.55,sizeAttenuation:false,transparent:true,opacity:.72,depthWrite:false})); andromeda.frustumCulled=false; world.add(andromeda);
+
+// IC 1101: enormous central elliptical galaxy in Abell 2029, roughly a billion light-years away.
+// Use a conservative ~500,000 ly luminous diameter here; diffuse outer halo estimates depend strongly on definition.
+const IC_RADIUS_AU=250000*LY_AU, icPhysical=[];
+const icG=new THREE.BufferGeometry(); icG.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(1800*3),3));
+for(let i=0;i<1800;i++){
+ const q=Math.pow(Math.random(),1.75),r=q*IC_RADIUS_AU,th=Math.acos(2*Math.random()-1),ph=Math.random()*Math.PI*2;
+ let x=r*Math.sin(th)*Math.cos(ph),y=r*.72*Math.sin(th)*Math.sin(ph),z=r*.58*Math.cos(th);
+ icPhysical.push(V(pos.IC1101.x+x,pos.IC1101.y+y,pos.IC1101.z+z));
+}
+const ic1101=new THREE.Points(icG,new THREE.PointsMaterial({color:0xe6d2a8,size:1.6,sizeAttenuation:false,transparent:true,opacity:.70,depthWrite:false})); ic1101.frustumCulled=false; world.add(ic1101);
+
+// Shirley's Galaxy: fictional location, physically scaled as a modest spiral galaxy about 90,000 ly across.
+const SHIRLEY_RADIUS_AU=45000*LY_AU, shirleyPhysical=[];
+const shirleyG=new THREE.BufferGeometry(); shirleyG.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(1600*3),3));
+for(let i=0;i<1600;i++){
+ const q=Math.pow(Math.random(),.68),r=q*SHIRLEY_RADIUS_AU,arm=(i%3)*Math.PI*2/3,a=arm+q*7.2+(Math.random()-.5)*.55,z=(Math.random()-.5)*SHIRLEY_RADIUS_AU*.055*(1-q*.45);
+ shirleyPhysical.push(V(pos.ShirleyGalaxy.x+r*Math.cos(a),pos.ShirleyGalaxy.y+r*Math.sin(a),pos.ShirleyGalaxy.z+z));
+}
+const shirleyGalaxy=new THREE.Points(shirleyG,new THREE.PointsMaterial({color:0xd8c8ff,size:1.55,sizeAttenuation:false,transparent:true,opacity:.74,depthWrite:false})); shirleyGalaxy.frustumCulled=false; world.add(shirleyGalaxy);
+
+// Cosmic microwave background: the oldest electromagnetic light we can observe.
+// Its emitting matter is now roughly 45.4 billion light-years away in comoving distance.
+const CMB_RADIUS_AU=45.4e9*LY_AU;
+const cmbG=new THREE.BufferGeometry(),cmbPts=[];
+for(let i=0;i<1800;i++){const z=2*Math.random()-1,a=Math.random()*Math.PI*2,r=CMB_RADIUS_AU,s=Math.sqrt(1-z*z);cmbPts.push(r*s*Math.cos(a),r*s*Math.sin(a),r*z);}
+cmbG.setAttribute('position',new THREE.Float32BufferAttribute(cmbPts,3));
+const cmb=new THREE.Points(cmbG,new THREE.PointsMaterial({color:0xd5a56a,size:.018,transparent:true,opacity:.20,depthWrite:false}));world.add(cmb);
+
+const obs=new THREE.Mesh(new THREE.SphereGeometry(1,32,18),new THREE.MeshBasicMaterial({color:0x5478a8,wireframe:true,transparent:true,opacity:.035,depthWrite:false})); world.add(obs);
+
+new THREE.TextureLoader().load('simba.jpg',tex=>{const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.95,depthWrite:false}));s.scale.set(.72,.52,1);world.add(s);meshes.SimbaPhoto=s;});
+
+// µ-Ziq · Chewed Corners: a deliberately non-astronomical cultural satellite.
+new THREE.TextureLoader().load('μ-ziq.jpg',tex=>{
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.96,depthWrite:false}));
+ s.scale.set(.78,.72,1);world.add(s);meshes.MuziqPhoto=s;
+});
+
+// Shirley, sovereign of a fictional galaxy and, like every observer, centre of her observable universe.
+new THREE.TextureLoader().load('shirley.jpg',tex=>{
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.96,depthWrite:false}));
+ s.scale.set(.82,.82,1);world.add(s);meshes.ShirleyPhoto=s;
+});
+
+let auPerUnit=Math.pow(10,-3.25), focusAU=pos.Earth.clone(), rotX=.12,rotY=-.35,rotZ=0,flight=null;
+const dest=document.getElementById('dest'),go=document.getElementById('go'),zoom=document.getElementById('zoom'),stats=document.getElementById('stats'),info=document.getElementById('info'),badge=document.getElementById('badge');
+
+const targetLog={Earth:-4,Moon:-4,Venus:-2.35,Sun:-2.15,Mercury:-2.5,Mars:-2.1,Jupiter:-1.4,Saturn:-1.35,Pluto:-1.2,'Alpha Centauri':-2.0,'R Doradus':0.28,'Stephenson 2-18':1.0,Polaris:-0.29,'Asteroid Belt':0.0,'Kuiper Belt':1.05,'Oort Cloud':4.25,'Galactic Centre':8.45,'Milky Way':8.75,Andromeda:11.0,'IC 1101':11.65,Simba:-4.1,'µ-Ziq':-3.35,"Shirley's Galaxy":9.0,'Cosmic Microwave Background':14.64,'Observable Universe':14.65};
+
+function fmt(au){
+ au=Math.abs(au);
+ if(au<.01)return Math.round(au*AU_KM).toLocaleString()+' km';
+ if(au<1000)return au.toLocaleString(undefined,{maximumFractionDigits:3})+' AU';
+ const ly=au/LY_AU;
+ if(ly<1000)return ly.toLocaleString(undefined,{maximumFractionDigits:3})+' ly';
+ if(ly<1e6)return (ly/1000).toFixed(2)+' kly';
+ if(ly<1e9)return (ly/1e6).toFixed(2)+' Mly';
+ return (ly/1e9).toFixed(2)+' Gly';
+}
+function focusFor(n){if(n==='Asteroid Belt'||n==='Kuiper Belt'||n==='Oort Cloud')return pos.Sun.clone();if(n==='Observable Universe'||n==='Cosmic Microwave Background'||n==='Milky Way')return pos.Earth.clone();if(n==='Alpha Centauri')return pos.Alpha.clone();if(n==='R Doradus')return pos.R_Doradus.clone();if(n==='Stephenson 2-18')return pos.Stephenson.clone();if(n==='Polaris')return pos.Polaris.clone();if(n==='Galactic Centre')return pos.GC.clone();if(n==='Andromeda')return pos.Andromeda.clone();if(n==='IC 1101')return pos.IC1101.clone();if(n==="Shirley's Galaxy")return pos.ShirleyGalaxy.clone();if(n==='µ-Ziq')return pos.Muziq.clone();return data[n]?data[n].p.clone():pos.Earth.clone();}
+function showInfo(n){
+ let s='';
+ if(n==='Asteroid Belt')s='Asteroid Belt · sparse rocky small-body region mainly about 2.1–3.3 AU from the Sun.';
+ else if(n==='Kuiper Belt')s='Kuiper Belt · broad icy small-body region beyond Neptune, modelled here from about 30–50 AU from the Sun.';
+ else if(n==='Oort Cloud')s='Oort Cloud · hypothetical roughly spherical reservoir of icy bodies · schematic range here 2,000–100,000 AU from the Sun.';
+ else if(n==='Cosmic Microwave Background')s='Cosmic Microwave Background · oldest electromagnetic light we can observe · released about 380,000 years after the Big Bang · emitting matter now roughly 45.4 billion light-years away in comoving distance.';
+ else if(n==='Observable Universe')s='Observable universe · present comoving radius about 46.5 billion light-years.';
+ else if(n==='Milky Way')s='Milky Way · barred spiral model, about 120,000 light-years across.';
+ else if(n==='Andromeda')s='Andromeda (M31) · nearest major galaxy · about 2.54 million light-years from Earth · modelled as an inclined spiral.';
+ else if(n==='IC 1101')s='IC 1101 · giant elliptical galaxy in Abell 2029 · roughly 1.0 billion light-years from Earth · luminous model about 500,000 light-years across; outer-halo size estimates vary.';
+ else if(n==='µ-Ziq')s='µ-Ziq · Chewed Corners (2013) · cultural satellite in a deliberately fictional Earth orbit.';
+ else if(n==="Shirley's Galaxy")s="SHIRLEY'S GALAXY · fictional spiral galaxy about 15 million light-years from Earth · Shirley is at the centre of her observable universe.";
+ else if(data[n])s=n+' · '+data[n].t+(n!=='Earth'?' · Earth distance '+fmt(data[n].p.distanceTo(pos.Earth)):'');
+ info.textContent=s;
+}
+function startFlight(n){
+ const ff=focusAU.clone(),tf=focusFor(n),fl=Math.log10(auPerUnit),tl=targetLog[n]??fl;
+ flight={start:performance.now(),dur:Math.min(6500,1100+Math.abs(tl-fl)*420),ff,tf,fl,tl}; showInfo(n);
+}
+function updateFlight(now){
+ if(!flight)return;
+ let t=(now-flight.start)/flight.dur;if(t>1)t=1;const s=t*t*(3-2*t);
+ focusAU.copy(flight.ff).lerp(flight.tf,s);
+ const lg=THREE.MathUtils.lerp(flight.fl,flight.tl,s);auPerUnit=Math.pow(10,lg);zoom.value=lg;
+ if(t===1)flight=null;
+}
+const tmp=new THREE.Vector3();
+const display=(p,out)=>out.copy(p).sub(focusAU).multiplyScalar(1/auPerUnit);
+
+function updateWorld(){
+ for(const [n,d] of Object.entries(data)){
+   const m=meshes[n],rr=d.r/auPerUnit; display(d.p,tmp);m.position.copy(tmp);m.scale.setScalar(Math.max(rr,1e-10));
+   const ring=rings[n];ring.position.copy(tmp);ring.quaternion.copy(camera.quaternion);ring.scale.setScalar(.085);ring.visible=rr<.018&&tmp.length()<70&&auPerUnit<1000;
+ }
+ display(pos.Earth,tmp);atmosphere.position.copy(tmp);const er=data.Earth.r/auPerUnit;atmosphere.scale.setScalar(er*1.025);atmosphere.visible=er>.004;
+ moonOrbit.scale.setScalar(1/auPerUnit);moonOrbit.position.copy(display(pos.Earth,new THREE.Vector3()));moonOrbit.visible=(.00257/auPerUnit)<30&&(.00257/auPerUnit)>.02;
+ earthOrbit.scale.setScalar(1/auPerUnit);earthOrbit.position.copy(display(pos.Sun,new THREE.Vector3()));earthOrbit.visible=(1/auPerUnit)<30&&(1/auPerUnit)>.02;
+ jupiterOrbit.scale.setScalar(1/auPerUnit);jupiterOrbit.position.copy(display(pos.Sun,new THREE.Vector3()));jupiterOrbit.visible=(5.204/auPerUnit)<30&&(5.204/auPerUnit)>.02;
+ saturnOrbit.scale.setScalar(1/auPerUnit);saturnOrbit.position.copy(display(pos.Sun,new THREE.Vector3()));saturnOrbit.visible=(9.58/auPerUnit)<30&&(9.58/auPerUnit)>.02;
+ display(pos.Saturn,tmp);saturnRings.position.copy(tmp);saturnRings.scale.setScalar(data.Saturn.r/auPerUnit);saturnRings.visible=(data.Saturn.r/auPerUnit)>.0007&&tmp.length()<70;
+ muziqOrbit.scale.setScalar(1/auPerUnit);muziqOrbit.position.copy(display(pos.Earth,new THREE.Vector3()));muziqOrbit.visible=(.012/auPerUnit)<30&&(.012/auPerUnit)>.02;
+ pointLight.position.copy(display(pos.Sun,new THREE.Vector3()));
+
+ // Small-body regions are centred on the live Sun position. Their point coordinates are in physical AU.
+ const sunDisplay=display(pos.Sun,new THREE.Vector3());
+ asteroidBelt.position.copy(sunDisplay);asteroidBelt.scale.setScalar(1/auPerUnit);asteroidBelt.visible=(3.3/auPerUnit)>.025&&(2.1/auPerUnit)<60;
+ kuiperBelt.position.copy(sunDisplay);kuiperBelt.scale.setScalar(1/auPerUnit);kuiperBelt.visible=(50/auPerUnit)>.025&&(30/auPerUnit)<60;
+ oortCloud.position.copy(sunDisplay);oortCloud.scale.setScalar(1/auPerUnit);oortCloud.visible=(100000/auPerUnit)>.02&&(2000/auPerUnit)<70;
+
+ if(meshes.SimbaPhoto){display(pos.Simba,tmp);meshes.SimbaPhoto.position.copy(tmp);meshes.SimbaPhoto.visible=tmp.length()<12&&Math.log10(auPerUnit)<-2.5;}
+ if(meshes.MuziqPhoto){display(pos.Muziq,tmp);meshes.MuziqPhoto.position.copy(tmp);meshes.MuziqPhoto.visible=tmp.length()<14&&Math.log10(auPerUnit)<-2.0;}
+
+ const sgr=SHIRLEY_RADIUS_AU/auPerUnit;shirleyGalaxy.visible=sgr>.00012&&sgr<60;
+ if(shirleyGalaxy.visible){const a=shirleyGalaxy.geometry.attributes.position.array;for(let i=0;i<shirleyPhysical.length;i++){const p=shirleyPhysical[i];a[i*3]=(p.x-focusAU.x)/auPerUnit;a[i*3+1]=(p.y-focusAU.y)/auPerUnit;a[i*3+2]=(p.z-focusAU.z)/auPerUnit;}shirleyGalaxy.geometry.attributes.position.needsUpdate=true;}
+ if(meshes.ShirleyPhoto){
+   display(pos.ShirleyGalaxy,tmp);meshes.ShirleyPhoto.position.copy(tmp);
+   // Let the portrait respond to zoom instead of remaining the same screen size.
+   const ss=Math.max(.035,Math.min(.82,sgr*.18));meshes.ShirleyPhoto.scale.set(ss,ss,1);
+   meshes.ShirleyPhoto.visible=tmp.length()<70&&Math.log10(auPerUnit)>7.7&&Math.log10(auPerUnit)<11.5;
+ }
+
+ const dr=MW_RADIUS_AU/auPerUnit;mw.visible=dr>.00012&&dr<100;
+ if(mw.visible){const a=mw.geometry.attributes.position.array;for(let i=0;i<mwPhysical.length;i++){const p=mwPhysical[i];a[i*3]=(p.x-focusAU.x)/auPerUnit;a[i*3+1]=(p.y-focusAU.y)/auPerUnit;a[i*3+2]=(p.z-focusAU.z)/auPerUnit;}mw.geometry.attributes.position.needsUpdate=true;}
+
+ const ar=AND_RADIUS_AU/auPerUnit;andromeda.visible=ar>.00012&&ar<90;
+ if(andromeda.visible){const a=andromeda.geometry.attributes.position.array;for(let i=0;i<andPhysical.length;i++){const p=andPhysical[i];a[i*3]=(p.x-focusAU.x)/auPerUnit;a[i*3+1]=(p.y-focusAU.y)/auPerUnit;a[i*3+2]=(p.z-focusAU.z)/auPerUnit;}andromeda.geometry.attributes.position.needsUpdate=true;}
+
+ const ir=IC_RADIUS_AU/auPerUnit;ic1101.visible=ir>.00012&&ir<90;
+ if(ic1101.visible){const a=ic1101.geometry.attributes.position.array;for(let i=0;i<icPhysical.length;i++){const p=icPhysical[i];a[i*3]=(p.x-focusAU.x)/auPerUnit;a[i*3+1]=(p.y-focusAU.y)/auPerUnit;a[i*3+2]=(p.z-focusAU.z)/auPerUnit;}ic1101.geometry.attributes.position.needsUpdate=true;}
+
+ // At intergalactic zooms, keep both home galaxies discoverable rather than letting them vanish into blackness.
+ if(Math.log10(auPerUnit)>10.3){
+   const sr=meshes.ShirleyPhoto; if(sr) sr.material.opacity=Math.max(.18,Math.min(.75,sgr*45));
+ } else if(meshes.ShirleyPhoto){meshes.ShirleyPhoto.material.opacity=.96;}
+
+ display(pos.Earth,tmp);
+ const or=OBS_RADIUS_AU/auPerUnit;obs.position.copy(tmp);obs.scale.setScalar(or);obs.visible=or>.15&&or<80;
+ // CMB is a shell centred on the observer. Its points are stored at physical AU scale.
+ cmb.position.set(-focusAU.x/auPerUnit,-focusAU.y/auPerUnit,-focusAU.z/auPerUnit);cmb.scale.setScalar(1/auPerUnit);
+ const cr=CMB_RADIUS_AU/auPerUnit;cmb.visible=cr>.12&&cr<90;
+}
+go.onclick=()=>startFlight(dest.value);dest.onchange=()=>showInfo(dest.value);
+zoom.oninput=()=>{flight=null;auPerUnit=Math.pow(10,parseFloat(zoom.value));};
+
+let dragging=false,lx=0,ly=0,lastPinch=0,lastTouchCX=0,lastTouchCY=0,lastTouchAngle=0,multiTouch=false;
+renderer.domElement.addEventListener('pointerdown',e=>{
+ if(e.pointerType==='touch' && !e.isPrimary)return;
+ dragging=true;lx=e.clientX;ly=e.clientY;flight=null;
+ try{renderer.domElement.setPointerCapture(e.pointerId);}catch(_){}
+ e.preventDefault();
+},{passive:false});
+renderer.domElement.addEventListener('pointermove',e=>{
+ if(!dragging||multiTouch)return;
+ const dx=e.clientX-lx,dy=e.clientY-ly;
+ if(dx||dy){
+   flight=null;
+   // Orbit around the current focus, so the examined object stays centred.
+   rotY+=dx*.006; rotX+=dy*.006;
+   rotX=Math.max(-Math.PI*.49,Math.min(Math.PI*.49,rotX));
+   lx=e.clientX;ly=e.clientY;
+ }
+ e.preventDefault();
+},{passive:false});
+renderer.domElement.addEventListener('pointerup',e=>{dragging=false;try{renderer.domElement.releasePointerCapture(e.pointerId);}catch(_){}});
+renderer.domElement.addEventListener('pointercancel',()=>{dragging=false;multiTouch=false;});
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();flight=null;let lg=Math.log10(auPerUnit)+Math.sign(e.deltaY)*.12;lg=Math.max(-5,Math.min(16,lg));auPerUnit=Math.pow(10,lg);zoom.value=lg;},{passive:false});
+
+// Controls: one finger orbits around the current GO TO focus; pinch zooms;
+// moving two fingers together pans the focus through space. A twist still rolls the view.
+function panFocusByPixels(dx,dy){
+ const viewH=2*camera.position.z*Math.tan(THREE.MathUtils.degToRad(camera.fov*.5));
+ const physPerPixel=auPerUnit*viewH/Math.max(innerHeight,1);
+ const delta=new THREE.Vector3(-dx*physPerPixel,dy*physPerPixel,0);
+ const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(rotX,rotY,rotZ,'XYZ')).invert();
+ delta.applyQuaternion(q);
+ focusAU.add(delta);
+}
+renderer.domElement.addEventListener('touchstart',e=>{
+ if(e.touches.length===2){
+   multiTouch=true; flight=null;
+   const x0=e.touches[0].clientX,y0=e.touches[0].clientY,x1=e.touches[1].clientX,y1=e.touches[1].clientY;
+   lastPinch=Math.hypot(x0-x1,y0-y1); lastTouchCX=(x0+x1)/2; lastTouchCY=(y0+y1)/2; lastTouchAngle=Math.atan2(y1-y0,x1-x0);
+ }
+},{passive:true});
+renderer.domElement.addEventListener('touchmove',e=>{
+ if(e.touches.length===2){
+   multiTouch=true; flight=null;
+   const x0=e.touches[0].clientX,y0=e.touches[0].clientY,x1=e.touches[1].clientX,y1=e.touches[1].clientY;
+   const d=Math.hypot(x0-x1,y0-y1),cx=(x0+x1)/2,cy=(y0+y1)/2,ang=Math.atan2(y1-y0,x1-x0);
+   if(lastPinch){
+     let lg=Math.log10(auPerUnit)-Math.log10(d/lastPinch)*1.7;
+     lg=Math.max(-5,Math.min(16,lg)); auPerUnit=Math.pow(10,lg); zoom.value=lg;
+     const dx=cx-lastTouchCX,dy=cy-lastTouchCY;
+     // Two-finger translation is the deliberate pan gesture.
+     if(Math.hypot(dx,dy)>.6) panFocusByPixels(dx,dy);
+     let da=ang-lastTouchAngle; if(da>Math.PI)da-=Math.PI*2; if(da<-Math.PI)da+=Math.PI*2;
+     if(Math.abs(da)>.003) rotZ+=da;
+   }
+   lastPinch=d; lastTouchCX=cx; lastTouchCY=cy; lastTouchAngle=ang; e.preventDefault();
+ }
+},{passive:false});
+renderer.domElement.addEventListener('touchend',e=>{
+ if(e.touches.length<2){lastPinch=0;lastTouchAngle=0;multiTouch=false;}
+ if(e.touches.length===0)dragging=false;
+});
+
+function scaleName(){const lg=Math.log10(auPerUnit);if(lg<-3)return'Earth–Moon scale';if(lg<0)return'Solar-system scale';if(lg<5)return'Interstellar scale';if(lg<10)return'Galactic scale';return'Cosmic scale';}
+function updateEarthOrientation(d){
+ const jd=jdFromDate(d),T=(jd-2451545.0)/36525;
+ const gst=((280.46061837+360.98564736629*(jd-2451545.0)+.000387933*T*T-T*T*T/38710000)%360+360)%360;
+ meshes.Earth.rotation.order='ZYX';meshes.Earth.rotation.z=-23.4392911*deg;meshes.Earth.rotation.y=-gst*deg;
+}
+function animate(now){
+ requestAnimationFrame(animate);
+ // Slow display orbit around Earth: one revolution every 90 seconds.
+ const ma=(now/90000)*Math.PI*2;pos.Muziq.set(Math.cos(ma)*.012,Math.sin(ma)*.012,Math.sin(ma*.37)*.0018);
+ updatePlanetPositions();
+ updateFlight(now);world.rotation.set(rotX,rotY,rotZ,'XYZ');updateWorld();
+ stats.textContent='View width ≈ '+fmt(auPerUnit*9.1)+' · 1 scene unit = '+fmt(auPerUnit);badge.textContent=scaleName();
+ updateEarthOrientation(new Date());
+ // Rhyl marker follows the real rotating Earth and dims on the night side.
+ const rhylNormal=rhylMarker.position.clone().normalize().applyQuaternion(meshes.Earth.quaternion);
+ const sunDir=pos.Sun.clone().sub(pos.Earth).normalize();
+ const rhylDay=rhylNormal.dot(sunDir);rhylMarker.visible=(data.Earth.r/auPerUnit)>.018;
+ rhylMarker.material.color.setHex(rhylDay>0?0xffef70:0x5a5124);
+ meshes.Moon.rotation.y=now*.000015;meshes.Sun.rotation.y=now*.000008;
+ renderer.render(scene,camera);
+}
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+showInfo('Earth');animate(performance.now());
+})();
+</script>
+</body>
+</html>
