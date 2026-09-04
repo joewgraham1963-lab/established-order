@@ -1,0 +1,13 @@
+[
+  {
+    "name": "Altair",
+    "kind": "star",
+    "distLy": 16.7,
+    "raHours": 19.8464,
+    "decDeg": 8.8683,
+    "sizeLy": 2e-07,
+    "color": 15658734,
+    "minLog": -2,
+    "maxLog": 3
+  }
+]
