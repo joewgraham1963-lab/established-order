@@ -2249,7 +2249,14 @@ async function wikipediaAnswer(text){
   if(!result){
     return "I tried Wikipedia, but I could not find useful external evidence about "+subject+".";
   }
+learnedDefinitions[normaliseTerm(subject)] = {
+  definition: result.text.split(".")[0] + ".",
+  confidence: .90,
+  time: Date.now(),
+  source: "Wikipedia"
+};
 
+saveBrain();
   return "Wikipedia says: "+result.text+
     " Source: Wikipedia.";
 }
