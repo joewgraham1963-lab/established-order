@@ -666,39 +666,33 @@ function referenceSupportFor(subject,value){
   }
 async function wikipediaSummary(term){
   try{
-    const title=encodeURIComponent(term.trim());
-
     const url=
       "https://en.wikipedia.org/w/api.php"+
       "?action=query"+
-      "&format=json"+
-      "&origin=*"+
-      "&redirects=1"+
       "&prop=extracts"+
       "&exintro=1"+
       "&explaintext=1"+
-      "&titles="+title;
+      "&redirects=1"+
+      "&titles="+encodeURIComponent(term.trim())+
+      "&format=json"+
+      "&origin=*";
 
     const response=await fetch(url);
 
     if(!response.ok)return null;
 
     const data=await response.json();
-
     const pages=data?.query?.pages;
+
     if(!pages)return null;
 
     const page=Object.values(pages)[0];
 
-    if(!page || page.missing!==undefined || !page.extract){
-      return null;
-    }
+    if(!page || page.missing!==undefined || !page.extract)return null;
 
     return {
       title:page.title||term,
       text:page.extract,
-      url:"https://en.wikipedia.org/wiki/"+
-          encodeURIComponent((page.title||term).replace(/ /g,"_")),
       source:"Wikipedia"
     };
 
