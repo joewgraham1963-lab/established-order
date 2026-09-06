@@ -2242,7 +2242,7 @@ async function wikipediaAnswer(text){
 
   if(!m)return null;
 
-  const subject=m[1].trim().replace(/[?]+$/,"");
+ const subject=m[1].trim().replace(/[?.!,]+$/,""); 
 
   const result=await wikipediaSummary(subject);
 
