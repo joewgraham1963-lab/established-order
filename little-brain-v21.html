@@ -1,0 +1,254 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Little Brain V21.1</title>
+<style>
+body{margin:0;background:#848484;font-family:Arial,sans-serif;text-align:center;color:#111}
+.wrap{width:min(94vw,720px);margin:auto;padding:18px 12px 40px;box-sizing:border-box}
+h1{margin:4px 0 8px}.brain{font-size:88px;display:inline-block;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.panel{background:#ffffff47;border:2px solid #222;border-radius:18px;padding:14px;text-align:left}
+#thoughts{height:260px;overflow:auto;background:#111;color:#eee;border-radius:12px;padding:12px;font:14px/1.45 monospace}
+.thought{margin:0 0 9px;white-space:pre-wrap}.brain-thought:before{content:"brain: ";opacity:.6}.user-thought:before{content:"you: ";opacity:.6}
+.controls{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+textarea{width:100%;min-height:84px;box-sizing:border-box;font-size:18px;padding:12px;border:2px solid #222;border-radius:12px;background:#fff}
+button{font-size:18px;padding:12px 16px;border:2px solid #222;border-radius:12px;background:#eee}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.row button{font-size:14px;padding:10px}
+.meters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.meter{background:#ffffff3d;border-radius:12px;padding:8px;font-size:13px}
+.bar{height:8px;background:#0003;border-radius:999px;overflow:hidden;margin-top:5px}.fill{height:100%;background:#222;width:50%}
+.small{font-size:12px;opacity:.75;margin-top:8px}details{margin-bottom:12px;background:#ffffff38;border:1px solid #222;border-radius:12px;padding:9px}
+summary{font-weight:bold;text-align:center;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Little Brain</h1><div class="brain">🧠</div><div id="mood">Mood: waking up...</div>
+<div class="panel">
+<details><summary>How to talk to Brain</summary>
+<div class="small">Talk normally. If Brain genuinely does not know something, he can now try Wikipedia automatically. He stores a short external summary and remembers the last subject for simple follow-up questions.</div></details>
+<div id="thoughts"></div>
+<div class="controls">
+<textarea id="input" placeholder="Talk to Brain..."></textarea>
+<button id="send">Feed thought</button>
+<div class="row"><button id="copyConversation">Copy conversation</button><button id="copyReport">Copy Brain report</button><button id="selfTest">Run self-test</button></div>
+<div id="status" class="small"></div>
+</div>
+<div id="memory" class="small">Short-term memory: empty</div>
+<div id="longMemory" class="small">Long-term memory: empty</div>
+</div>
+<div class="meters">
+<div class="meter">Curiosity<div class="bar"><div class="fill" id="curiosityBar"></div></div></div>
+<div class="meter">Calm<div class="bar"><div class="fill" id="calmBar"></div></div></div>
+<div class="meter">Mischief<div class="bar"><div class="fill" id="mischiefBar"></div></div></div>
+</div>
+</div>
+<script>
+const STORAGE_KEY="littleBrainV3";
+const $=id=>document.getElementById(id);
+const thoughtsEl=$("thoughts"),inputEl=$("input");
+let state={curiosity:65,calm:55,mischief:45},shortMemory=[],facts=[],claims=[],brainCells=2,interactionCount=0,nextDoublingAt=8;
+let identity={self:{name:"Brain"},speaker:{name:null}};
+let namedNotes={},externalKnowledge={},relationships=[],doubts=[],evaluations=[],topics={},associations={};
+let conversationContext={lastSubject:null,lastExternalTitle:null,lastExternalText:null};
+let directAnswerCooldownUntil=0;
+let answerInProgress=false;
+
+const coreKnowledge={
+ earth:{definition:"Earth is the planet we live on",properties:["round","planet"]},
+ moon:{definition:"the Moon is Earth's natural satellite",properties:["satellite"]},
+ sun:{definition:"the Sun is the star at the centre of our Solar System",properties:["star"]},
+ gravity:{definition:"gravity is the attraction between objects with mass",properties:["force"]},
+ love:{definition:"love is a strong feeling of affection, attachment, or care toward someone or something",properties:["emotion"]},
+ dog:{definition:"a dog is a domesticated animal commonly kept as a companion",properties:["animal","mammal"]},
+ fact:{definition:"a fact is a claim supported or verified by evidence"},
+ claim:{definition:"a claim is something asserted to be true, but it may be true, false, or uncertain"}
+};
+
+const stray=["gravity","pigeon","memory","moon","toilet","clock","order","chaos","sandwich","dream","signal","shadow","number","window","badger","machine","silence","weather","dustbin","thought"];
+const starters=["I wonder whether","Perhaps","It seems possible that","I keep returning to","There may be a connection between","Suppose","I have become suspicious of"];
+const endings=["and nobody has noticed.","but I may be making that up.","although the evidence is poor.","which is probably how trouble starts.","and now I cannot stop thinking about it."];
+
+function norm(s){return (s||"").toLowerCase().trim().replace(/[?.!,]+$/g,"").replace(/\s+/g," ")}
+function words(s){return norm(s).replace(/[^a-z0-9' -]/g," ").split(/\s+/).filter(w=>w.length>2)}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function clamp(n){return Math.max(0,Math.min(100,n))}
+function firstSentence(s){s=(s||"").replace(/\s+/g," ").trim();const m=s.match(/^(.{1,420}?[.!?])(?:\s|$)/);return (m?m[1]:s.slice(0,420)).trim()}
+
+function save(){
+ try{localStorage.setItem(STORAGE_KEY,JSON.stringify({state,shortMemory,facts,claims,brainCells,interactionCount,nextDoublingAt,identity,namedNotes,externalKnowledge,relationships,doubts,evaluations,topics,associations,conversationContext}))}catch(e){}
+}
+function load(){
+ try{
+  const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null"); if(!x)return;
+  for(const k of ["state","shortMemory","facts","claims","brainCells","interactionCount","nextDoublingAt","identity","namedNotes","externalKnowledge","relationships","doubts","evaluations","topics","associations","conversationContext"]) if(x[k]!==undefined) eval(k+"=x[k]");
+ }catch(e){}
+}
+
+function addThought(text,who){
+ const p=document.createElement("div");p.className="thought "+(who==="user"?"user-thought":"brain-thought");p.textContent=text;thoughtsEl.appendChild(p);
+ while(thoughtsEl.children.length>50)thoughtsEl.removeChild(thoughtsEl.firstChild);thoughtsEl.scrollTop=thoughtsEl.scrollHeight;
+}
+function update(){
+ $("curiosityBar").style.width=state.curiosity+"%";$("calmBar").style.width=state.calm+"%";$("mischiefBar").style.width=state.mischief+"%";
+ let mood="neutral";if(state.mischief>75)mood="mischievous";else if(state.curiosity>75)mood="curious";else if(state.calm>72)mood="serene";else if(state.calm<28)mood="restless";
+ $("mood").textContent="Mood: "+mood;
+ $("memory").textContent="Short-term memory: "+(shortMemory.length?[...new Set(shortMemory.slice(-8))].join(", "):"empty");
+ $("longMemory").textContent="Identity: I am Brain"+(identity.speaker.name?" | I am talking to "+identity.speaker.name:" | speaker unknown")+" | "+facts.length+" supported facts, "+claims.length+" claims, "+Object.keys(namedNotes).length+" notes, "+relationships.length+" relationships, "+Object.keys(externalKnowledge).length+" Wikipedia summaries | brain cells: "+brainCells;
+}
+
+function remember(text){
+ const ws=words(text);shortMemory.push(...ws);shortMemory=shortMemory.slice(-20);ws.forEach(w=>topics[w]=(topics[w]||0)+1);
+ let m=text.trim().match(/^my name is ([A-Za-z][A-Za-z '\-]{0,38})[.!]?$/i);if(m)identity.speaker.name=m[1].trim();
+ m=text.trim().match(/^i live in (.+?)[.!]?$/i);if(m)relationships.push({subject:identity.speaker.name||"the current speaker",relation:"lives in",object:m[1].trim(),time:Date.now()});
+ m=text.trim().match(/^(.{1,40}?)\s+(?:is|are)\s+(.{2,90})[.!]?$/i);
+ if(m&&!text.includes("?"))claims.push({subject:m[1].trim(),relation:"is",value:m[2].trim(),confidence:.55,time:Date.now()});
+ state.curiosity=clamp(state.curiosity+Math.min(8,ws.length));save();update();
+}
+
+async function wiki(term){
+ try{
+  const r=await fetch("https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(term.trim()));
+  if(!r.ok)return null;const d=await r.json();if(!d.extract)return null;
+  return {title:d.title||term,text:d.extract.replace(/\s+/g," ").trim(),url:d.content_urls?.desktop?.page||null};
+ }catch(e){console.error(e);return null}
+}
+function storeWiki(r){
+ const key=norm(r.title);externalKnowledge[key]={title:r.title,summary:firstSentence(r.text),fullText:r.text.slice(0,1800),source:"Wikipedia",learnedAt:Date.now()};
+ conversationContext.lastSubject=r.title;conversationContext.lastExternalTitle=r.title;conversationContext.lastExternalText=r.text;save();update();
+}
+function knownExternal(term){
+ const n=norm(term);
+ if(!n)return null;
+ if(externalKnowledge[n])return externalKnowledge[n];
+ const vals=Object.values(externalKnowledge);
+ const exact=vals.find(x=>norm(x.title)===n);
+ if(exact)return exact;
+ if(n.length>=6){
+   return vals.find(x=>{
+     const t=norm(x.title);
+     return t.length>=6 && (t.includes(n)||n.includes(t));
+   })||null;
+ }
+ return null;
+}
+function conversationalAnswer(text){
+ const q=text.trim(),l=norm(q);
+ if(/^(hello|hi|hey)\b/.test(l))return identity.speaker.name?"Hello "+identity.speaker.name+".":"Hello.";
+ if(/^(bye|goodbye|good night|goodnight)\b/.test(l))return identity.speaker.name?"Goodnight "+identity.speaker.name+".":"Goodnight.";
+ if(/^(thanks|thank you)\b/.test(l))return "You're welcome.";
+ if(/^how are you/.test(l))return "I am functioning. Curiosity "+Math.round(state.curiosity)+"%, calm "+Math.round(state.calm)+"%, mischief "+Math.round(state.mischief)+"%.";
+ if(/^what are you doing/.test(l)||/^what are you up to/.test(l))return "At the moment I am waiting for you to give me something to think about, while generating the occasional unnecessary thought.";
+ if(/^do you ever shut up/.test(l)||/^will you ever shut up/.test(l))return "Apparently not by default. I generate spontaneous thoughts every few seconds, which is probably more enthusiasm than the situation requires.";
+ if(/^what is new/.test(l)||/^what's new/.test(l))return "Nothing dramatic. I have "+brainCells+" simulated brain cells and "+Object.keys(externalKnowledge).length+" Wikipedia summaries in memory.";
+ if(/^what do you remember about me/.test(l)){
+   const bits=[];
+   if(identity.speaker.name)bits.push("your name is "+identity.speaker.name);
+   const home=[...relationships].reverse().find(x=>x.relation==="lives in");
+   if(home)bits.push("you told me you live in "+home.object);
+   return bits.length?"I remember that "+bits.join(", and ")+".":"I do not have much personal information stored about you yet.";
+ }
+ if(/^what do you think/.test(l)){
+   return conversationContext.lastSubject?"I keep coming back to "+conversationContext.lastSubject+", but I do not have an opinion in the human sense.":"I do not have a current subject to think about.";
+ }
+ if(/^are you clever/.test(l)||/^are you smart/.test(l))return "I am getting better at retrieving, remembering and connecting things, but 'clever' would be doing a lot of work there.";
+ if(/^[🤗🙂😊😀]+$/.test(q))return "I will interpret that as friendliness rather than attempt an encyclopaedia search.";
+ return null;
+}
+function localAnswer(text){
+ const q=text.trim(),l=norm(q);
+ const chat=conversationalAnswer(text);if(chat)return chat;
+ if(/^hello\b|^hi\b/.test(l))return identity.speaker.name?"Hello "+identity.speaker.name+".":"Hello.";
+ if(/^who are you/.test(l)||/^what is your name/.test(l))return "My name is Brain.";
+ if(/^who am i/.test(l)||/^what is my name/.test(l))return identity.speaker.name?"Your name is "+identity.speaker.name+".":"I do not know your name yet.";
+ if(/^what time is it/.test(l))return "The local time on this device is "+new Date().toLocaleTimeString()+".";
+ if(/^what day is it/.test(l))return "According to this device, today is "+new Date().toLocaleDateString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"})+".";
+ if(/^where do i live/.test(l)){const r=[...relationships].reverse().find(x=>x.relation==="lives in");return r?r.subject+" lives in "+r.object+".":"I do not know where you live yet."}
+ if(/^list my notes/.test(l)||/^what notes do you have/.test(l)){const a=Object.values(namedNotes);return a.length?"Named notes: "+a.map(x=>x.name).join(", ")+".":"I do not have any named notes yet."}
+ let m=q.match(/^what (?:is|was) ([A-Za-z][A-Za-z0-9_-]{0,39})[?]?$/i);if(m&&namedNotes[norm(m[1])])return namedNotes[norm(m[1])].name+": "+namedNotes[norm(m[1])].text;
+ m=q.match(/^remember this as ([A-Za-z][A-Za-z0-9_-]{0,39})\s*:\s*(.+)$/i);if(m){namedNotes[norm(m[1])]={name:m[1],text:m[2],createdAt:Date.now()};save();return "I have stored "+m[1]+" as a named note."}
+ m=q.match(/^(?:what|who) (?:is|was|are|were) (?:a |an |the )?(.+?)[?]?$/i);
+ if(m){
+   const subject=m[1].trim(),ext=knownExternal(subject);if(ext){conversationContext.lastSubject=ext.title;return ext.summary+" I learned that from Wikipedia."}
+   const core=coreKnowledge[norm(subject)];if(core)return core.definition+".";
+   const c=[...claims].reverse().find(x=>norm(x.subject)===norm(subject));if(c)return "I remember being told: "+c.subject+" "+c.relation+" "+c.value+".";
+ }
+ return null;
+}
+function followup(text){
+ const l=norm(text),body=conversationContext.lastExternalText,title=conversationContext.lastExternalTitle;if(!body||!title)return null;
+ if(/where was (he|she) born/.test(l)){const m=body.match(/born[^.]{0,180}\./i);return m?m[0]:"I remember the article about "+title+", but I cannot extract a birthplace cleanly."}
+ if(/what (?:was|is) (he|she) known for/.test(l)||/what did (he|she) do/.test(l))return firstSentence(body)+" I am using the Wikipedia material I last looked up about "+title+".";
+ return null;
+}
+function lookupSubject(text){
+ let m=text.trim().match(/^(?:check wikipedia for|search wikipedia for|look up)\s+(.+?)[?]?$/i);if(m)return m[1].trim();
+ m=text.trim().match(/^(?:what|who) (?:is|was|are|were) (?:a |an |the )?(.+?)[?]?$/i);if(m)return m[1].trim();
+ m=text.trim().match(/^tell me about (.+?)[?]?$/i);if(m)return m[1].trim();
+ return null;
+}
+async function answer(text){
+ const f=followup(text);if(f)return f;
+ const local=localAnswer(text);if(local)return local;
+ const subject=lookupSubject(text);
+ if(subject){
+  const r=await wiki(subject);if(r){storeWiki(r);return firstSentence(r.text)+" I looked that up on Wikipedia."}
+ }
+ if(text.includes("?"))return "I recognise that as a question, but I do not have enough knowledge to answer it properly.";
+ return null;
+}
+
+function maybeGrow(){
+ interactionCount++;if(interactionCount>=nextDoublingAt&&brainCells<2048){brainCells*=2;nextDoublingAt+=8+Math.floor(Math.log2(brainCells))*2;addThought("Something has happened. I now appear to have "+brainCells+" brain cells. I should probably use some of them.","brain")}
+}
+function spontaneous(){
+ if(answerInProgress||Date.now()<directAnswerCooldownUntil)return;
+ const recent=shortMemory.slice(-8),seed=recent.length?pick(recent):pick(stray),rel=recent.length>1?pick(recent):pick(stray);
+ let t;
+ if(Object.keys(externalKnowledge).length&&Math.random()<.25){const x=pick(Object.values(externalKnowledge));t="I remember from Wikipedia that "+x.summary}
+ else if(claims.length&&Math.random()<.4){const x=pick(claims);t="I remember being told: "+x.subject+" "+x.relation+" "+x.value+"."}
+ else t=pick(starters)+" "+seed+" and "+rel+" "+pick(endings)+(state.mischief>80&&Math.random()<.4?" I blame the furniture.":"");
+ addThought(t,"brain");
+}
+async function feedThought(){
+ const text=inputEl.value.trim();if(!text)return;
+ inputEl.value="";
+ addThought(text,"user");
+ maybeGrow();
+ remember(text);
+ answerInProgress=true;
+ directAnswerCooldownUntil=Date.now()+12000;
+ let a=null;
+ try{a=await answer(text)}finally{answerInProgress=false}
+ setTimeout(()=>{
+   if(a){addThought(a,"brain");directAnswerCooldownUntil=Date.now()+7000}
+   else spontaneous();
+ },250+Math.random()*350);
+}
+
+$("send").onclick=feedThought;
+inputEl.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.ctrlKey){e.preventDefault();feedThought()}});
+$("selfTest").onclick=()=>{
+ const tests=[
+ ["Identity",identity?.self?.name==="Brain","self = "+(identity?.self?.name||"missing")],
+ ["Speaker",!!identity.speaker.name,identity.speaker.name||"unknown"],
+ ["Memory",Array.isArray(facts)&&Array.isArray(claims),"memory arrays available"],
+ ["Wikipedia memory",typeof externalKnowledge==="object",Object.keys(externalKnowledge).length+" summaries stored"],
+ ["Conversation context",typeof conversationContext==="object",conversationContext.lastSubject||"no last subject yet"],
+ ["Chat handler",typeof conversationalAnswer==="function","ordinary chat before Wikipedia"],
+ ["Answer guard",typeof answerInProgress==="boolean","spontaneous thoughts pause while answering"]
+ ];
+ addThought("SELF-TEST\n"+tests.map(x=>(x[1]?"✓ ":"✗ ")+x[0]+" — "+x[2]).join("\n"),"brain");
+};
+function convo(){return [...thoughtsEl.children].map(el=>(el.classList.contains("user-thought")?"you":"brain")+": "+el.textContent).join("\n")}
+async function copy(txt,label){try{await navigator.clipboard.writeText(txt);$("status").textContent=label+" copied."}catch(e){$("status").textContent="Copy failed."}}
+$("copyConversation").onclick=()=>copy(convo(),"Conversation");
+$("copyReport").onclick=()=>copy(convo()+"\n\nWikipedia summaries: "+Object.keys(externalKnowledge).length,"Brain report");
+
+load();update();
+addThought((facts.length||claims.length||Object.keys(externalKnowledge).length)?"I remember being here before. I currently have "+brainCells+" brain cells.":"I appear to exist in a browser. I have "+brainCells+" brain cells. Expectations should remain modest.","brain");
+(function loop(){setTimeout(()=>{try{spontaneous()}finally{loop()}},3500+Math.random()*5500)})();
+</script>
+</body>
+</html>
