@@ -663,25 +663,41 @@ function referenceSupportFor(subject,value){
   }
 
   return null;
-}
 async function wikipediaSummary(term){
   try{
     const title=encodeURIComponent(term.trim());
 
-    const response=await fetch(
-      "https://en.wikipedia.org/api/rest_v1/page/summary/"+title
-    );
+    const url=
+      "https://en.wikipedia.org/w/api.php"+
+      "?action=query"+
+      "&format=json"+
+      "&origin=*"+
+      "&redirects=1"+
+      "&prop=extracts"+
+      "&exintro=1"+
+      "&explaintext=1"+
+      "&titles="+title;
+
+    const response=await fetch(url);
 
     if(!response.ok)return null;
 
     const data=await response.json();
 
-    if(!data || !data.extract)return null;
+    const pages=data?.query?.pages;
+    if(!pages)return null;
+
+    const page=Object.values(pages)[0];
+
+    if(!page || page.missing!==undefined || !page.extract){
+      return null;
+    }
 
     return {
-      title:data.title||term,
-      text:data.extract,
-      url:data.content_urls?.desktop?.page||null,
+      title:page.title||term,
+      text:page.extract,
+      url:"https://en.wikipedia.org/wiki/"+
+          encodeURIComponent((page.title||term).replace(/ /g,"_")),
       source:"Wikipedia"
     };
 
