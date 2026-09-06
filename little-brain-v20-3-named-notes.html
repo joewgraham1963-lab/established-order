@@ -362,6 +362,27 @@ const coreKnowledge={
     related:["glass","light","room"]
   }
 };
+  window:{
+    type:"object",
+    definition:"a window is an opening, usually glazed, that admits light into a building",
+    related:["glass","light","room"]
+  }
+};
+const referenceKnowledge={
+  earth:{
+    text:"Earth is approximately spherical."
+  },
+  sun:{
+    text:"The Sun is a star."
+  },
+  moon:{
+    text:"The Moon is Earth's natural satellite."
+  },
+  gravity:{
+    text:"Gravity is the attraction between objects with mass."
+  }
+};
+const aliases={
 
 const aliases={
   "silent":"silence",
@@ -621,10 +642,46 @@ function coreSupportFor(subject,value){
   const known=[k.type||"",...(k.properties||[]),...(k.related||[]),k.definition||""].map(normaliseTerm);
   return known.some(x=>x && (x===v || x.includes(v) || v.includes(x)));
 }
+function referenceSupportFor(subject,value){
+  const s=normaliseTerm(subject);
+  const v=normaliseTerm(value);
+  const ref=referenceKnowledge[s];
 
+  if(!ref)return null;
+
+  if(s==="earth"){
+    if(v.includes("round") || v.includes("spherical")){
+      return {supports:true,text:ref.text};
+    }
+
+    if(v.includes("square") || v.includes("flat") || v.includes("cube")){
+      return {supports:false,text:ref.text};
+    }
+  }
+
+  if(s==="sun" && v.includes("star")){
+    return {supports:true,text:ref.text};
+  }
+
+  if(s==="moon" &&
+     (v.includes("satellite") || v.includes("natural satellite"))){
+    return {supports:true,text:ref.text};
+  }
+
+  return null;
+}
 function separateSupport(subject,value){
   const sources=[];
-  if(coreSupportFor(subject,value))sources.push("my core knowledge");
+
+  if(coreSupportFor(subject,value)){
+    sources.push("my core knowledge");
+  }
+
+  const reference=referenceSupportFor(subject,value);
+
+  if(reference && reference.supports){
+    sources.push("my reference knowledge");
+  }
 
   const supported=facts.some(f=>
     normaliseTerm(f.subject)===normaliseTerm(subject) &&
@@ -1359,6 +1416,11 @@ function contradictsCore(subject,value){
 
 function evidenceFor(subject,value){
   const sources=[];
+   const reference=referenceSupportFor(subject,value);
+
+  if(reference && reference.supports){
+    sources.push("reference knowledge");
+  } 
   if(coreSupportFor(subject,value))sources.push("core knowledge");
 
   // A supported fact can count, but a mere user claim or relationship cannot
