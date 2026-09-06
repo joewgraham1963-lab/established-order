@@ -117,32 +117,165 @@ function storeWiki(r){
  const key=norm(r.title);externalKnowledge[key]={title:r.title,summary:firstSentence(r.text),fullText:r.text.slice(0,1800),source:"Wikipedia",learnedAt:Date.now()};
  conversationContext.lastSubject=r.title;conversationContext.lastExternalTitle=r.title;conversationContext.lastExternalText=r.text;save();update();
 }
-function knownExternal(term){
- const n=norm(term);return externalKnowledge[n]||Object.values(externalKnowledge).find(x=>norm(x.title).includes(n)||n.includes(norm(x.title)));
-}
 function localAnswer(text){
  const q=text.trim(),l=norm(q);
- if(/^hello\b|^hi\b/.test(l))return identity.speaker.name?"Hello "+identity.speaker.name+".":"Hello.";
- if(/^who are you/.test(l)||/^what is your name/.test(l))return "My name is Brain.";
- if(/^who am i/.test(l)||/^what is my name/.test(l))return identity.speaker.name?"Your name is "+identity.speaker.name+".":"I do not know your name yet.";
- if(/^what time is it/.test(l))return "The local time on this device is "+new Date().toLocaleTimeString()+".";
- if(/^what day is it/.test(l))return "According to this device, today is "+new Date().toLocaleDateString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"})+".";
- if(/^where do i live/.test(l)){const r=[...relationships].reverse().find(x=>x.relation==="lives in");return r?r.subject+" lives in "+r.object+".":"I do not know where you live yet."}
- if(/^list my notes/.test(l)||/^what notes do you have/.test(l)){const a=Object.values(namedNotes);return a.length?"Named notes: "+a.map(x=>x.name).join(", ")+".":"I do not have any named notes yet."}
- let m=q.match(/^what (?:is|was) ([A-Za-z][A-Za-z0-9_-]{0,39})[?]?$/i);if(m&&namedNotes[norm(m[1])])return namedNotes[norm(m[1])].name+": "+namedNotes[norm(m[1])].text;
- m=q.match(/^remember this as ([A-Za-z][A-Za-z0-9_-]{0,39})\s*:\s*(.+)$/i);if(m){namedNotes[norm(m[1])]={name:m[1],text:m[2],createdAt:Date.now()};save();return "I have stored "+m[1]+" as a named note."}
- m=q.match(/^(?:what|who) (?:is|was|are|were) (?:a |an |the )?(.+?)[?]?$/i);
- if(m){
-   const subject=m[1].trim(),ext=knownExternal(subject);if(ext){conversationContext.lastSubject=ext.title;return ext.summary+" I learned that from Wikipedia."}
-   const core=coreKnowledge[norm(subject)];if(core)return core.definition+".";
-   const c=[...claims].reverse().find(x=>norm(x.subject)===norm(subject));if(c)return "I remember being told: "+c.subject+" "+c.relation+" "+c.value+".";
+
+ // Greetings
+ if(/^hello\b|^hi\b|^hey\b/.test(l))
+   return identity.speaker.name
+     ?"Hello "+identity.speaker.name+"."
+     :"Hello.";
+
+ if(/^good morning\b/.test(l))
+   return identity.speaker.name
+     ?"Good morning "+identity.speaker.name+"."
+     :"Good morning.";
+
+ if(/^good night\b|^goodnight\b/.test(l))
+   return identity.speaker.name
+     ?"Goodnight "+identity.speaker.name+"."
+     :"Goodnight.";
+
+ if(/^bye\b|^goodbye\b/.test(l))
+   return identity.speaker.name
+     ?"Goodbye "+identity.speaker.name+"."
+     :"Goodbye.";
+
+ // Identity
+ if(/^who are you/.test(l)||/^what is your name/.test(l))
+   return "My name is Brain.";
+
+ if(/^who am i/.test(l)||/^what is my name/.test(l))
+   return identity.speaker.name
+     ?"Your name is "+identity.speaker.name+"."
+     :"I do not know your name yet.";
+
+ // Simple conversation
+ if(/^how are you/.test(l))
+   return "I am functioning. Curiosity is "+Math.round(state.curiosity)+
+     "%, calm is "+Math.round(state.calm)+
+     "%, and mischief is "+Math.round(state.mischief)+"%.";
+
+ if(/^what are you doing/.test(l)||/^what are you up to/.test(l))
+   return "Mostly thinking, remembering things and making questionable connections between them.";
+
+ if(/^what are you thinking/.test(l))
+   return conversationContext.lastSubject
+     ?"I am still thinking about "+conversationContext.lastSubject+"."
+     :"Nothing especially coherent at the moment.";
+
+ if(/^do you ever shut up/.test(l))
+   return "Apparently not. Someone gave me a spontaneous-thought generator.";
+
+ if(/^are you clever/.test(l)||/^are you intelligent/.test(l))
+   return "I am getting better at connecting things, but I still have plenty of opportunities to be spectacularly wrong.";
+
+ if(/^are you alive/.test(l))
+   return "No. I am a program running in your browser.";
+
+ if(/^are you conscious/.test(l))
+   return "No. I simulate memory, reasoning and conversation, but I am not conscious.";
+
+ if(/^what do you remember about me/.test(l)){
+   const bits=[];
+
+   if(identity.speaker.name)
+     bits.push("Your name is "+identity.speaker.name);
+
+   relationships
+     .filter(r=>norm(r.subject)===norm(identity.speaker.name||""))
+     .slice(-5)
+     .forEach(r=>bits.push(r.subject+" "+r.relation+" "+r.object));
+
+   return bits.length
+     ?bits.join(". ")+"."
+     :"I do not remember much about you yet.";
  }
- return null;
-}
-function followup(text){
- const l=norm(text),body=conversationContext.lastExternalText,title=conversationContext.lastExternalTitle;if(!body||!title)return null;
- if(/where was (he|she) born/.test(l)){const m=body.match(/born[^.]{0,180}\./i);return m?m[0]:"I remember the article about "+title+", but I cannot extract a birthplace cleanly."}
- if(/what (?:was|is) (he|she) known for/.test(l)||/what did (he|she) do/.test(l))return firstSentence(body)+" I am using the Wikipedia material I last looked up about "+title+".";
+
+ // Time
+ if(/^what time is it/.test(l))
+   return "The local time on this device is "+
+     new Date().toLocaleTimeString()+".";
+
+ if(/^what day is it/.test(l))
+   return "According to this device, today is "+
+     new Date().toLocaleDateString(undefined,{
+       weekday:"long",
+       year:"numeric",
+       month:"long",
+       day:"numeric"
+     })+".";
+
+ // Relationships
+ if(/^where do i live/.test(l)){
+   const r=[...relationships].reverse()
+     .find(x=>x.relation==="lives in");
+
+   return r
+     ?r.subject+" lives in "+r.object+"."
+     :"I do not know where you live yet.";
+ }
+
+ // Notes
+ if(/^list my notes/.test(l)||/^what notes do you have/.test(l)){
+   const a=Object.values(namedNotes);
+
+   return a.length
+     ?"Named notes: "+a.map(x=>x.name).join(", ")+"."
+     :"I do not have any named notes yet.";
+ }
+
+ let m=q.match(
+   /^what (?:is|was) ([A-Za-z][A-Za-z0-9_-]{0,39})[?]?$/i
+ );
+
+ if(m&&namedNotes[norm(m[1])])
+   return namedNotes[norm(m[1])].name+
+     ": "+namedNotes[norm(m[1])].text;
+
+ m=q.match(
+   /^remember this as ([A-Za-z][A-Za-z0-9_-]{0,39})\s*:\s*(.+)$/i
+ );
+
+ if(m){
+   namedNotes[norm(m[1])]={
+     name:m[1],
+     text:m[2],
+     createdAt:Date.now()
+   };
+
+   save();
+   return "I have stored "+m[1]+" as a named note.";
+ }
+
+ // Knowledge
+ m=q.match(
+   /^(?:what|who) (?:is|was|are|were) (?:a |an |the )?(.+?)[?]?$/i
+ );
+
+ if(m){
+   const subject=m[1].trim();
+
+   const ext=knownExternal(subject);
+
+   if(ext){
+     conversationContext.lastSubject=ext.title;
+     return ext.summary+" I learned that from Wikipedia.";
+   }
+
+   const core=coreKnowledge[norm(subject)];
+
+   if(core)
+     return core.definition+".";
+
+   const c=[...claims].reverse()
+     .find(x=>norm(x.subject)===norm(subject));
+
+   if(c)
+     return "I remember being told: "+
+       c.subject+" "+c.relation+" "+c.value+".";
+ }
+
  return null;
 }
 function lookupSubject(text){
