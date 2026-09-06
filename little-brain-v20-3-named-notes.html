@@ -669,13 +669,13 @@ async function wikipediaSummary(term){
     const url=
       "https://en.wikipedia.org/w/api.php"+
       "?action=query"+
+      "&format=json"+
+      "&origin=*"+
       "&prop=extracts"+
       "&exintro=1"+
       "&explaintext=1"+
       "&redirects=1"+
-      "&titles="+encodeURIComponent(term.trim())+
-      "&format=json"+
-      "&origin=*";
+      "&titles="+encodeURIComponent(term.trim());
 
     const response=await fetch(url);
 
@@ -688,11 +688,16 @@ async function wikipediaSummary(term){
 
     const page=Object.values(pages)[0];
 
-    if(!page || page.missing!==undefined || !page.extract)return null;
+    if(!page || page.missing!==undefined || !page.extract){
+      return null;
+    }
 
     return {
       title:page.title||term,
       text:page.extract,
+      url:"https://en.wikipedia.org/wiki/"+encodeURIComponent(
+        (page.title||term).replace(/ /g,"_")
+      ),
       source:"Wikipedia"
     };
 
