@@ -1,9 +1,9 @@
 # Established Order
-
+Is there a limit to the amount of shite one person can deal with?
 A small beginner HTML project created entirely on a cheap Android phone.
 
 ## What this project is
-
+Apart from outdated bollocks,
 This website is intended to help ordinary people make their first working HTML project on a phone.
 
 ## What I learned
