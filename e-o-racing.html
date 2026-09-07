@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Established Order Racing Mk1</title>
+<style>
+:root{--grey:#848484;--ink:#111;--paper:#eee}*{box-sizing:border-box}body{margin:0;background:var(--grey);font-family:Arial,sans-serif;color:var(--ink);text-align:center}.wrap{width:min(96vw,820px);margin:auto;padding:16px 10px 36px}h1{margin:4px 0 6px;font-size:clamp(30px,7vw,48px)}.sub{font-size:14px;opacity:.78;margin-bottom:14px}.panel{background:#ffffff47;border:2px solid #222;border-radius:18px;padding:12px;margin:12px 0}.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}button,input{font:inherit;border:2px solid #222;border-radius:12px;padding:11px 14px;background:#eee}button{cursor:pointer}input{min-width:180px}#status{min-height:44px;margin:8px 0;font-size:14px}#score{font-weight:bold;font-size:20px;margin:8px 0}canvas{display:block;width:100%;height:auto;aspect-ratio:16/10;background:#272727;border:2px solid #222;border-radius:14px;touch-action:none}.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.controls button{min-height:58px;font-size:24px}.controls .blank{visibility:hidden}.small{font-size:12px;opacity:.72}code{background:#0001;padding:2px 5px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Established Order Racing</h1>
+<div class="sub">Mk1. Two tiny cars, one questionable internet connection.</div>
+<div class="panel">
+  <div class="row"><button id="practiceBtn">PRACTICE</button><button id="hostBtn">HOST ONLINE RACE</button></div>
+  <div class="row" style="margin-top:8px"><input id="joinCode" placeholder="Enter race code"><button id="joinBtn">JOIN</button></div>
+  <div id="status">Choose Practice, Host, or Join.</div><div id="codeBox" class="small"></div>
+</div>
+<div class="panel">
+  <div id="score">YOU 0 laps | RIVAL 0 laps</div>
+  <canvas id="game" width="800" height="500" aria-label="Established Order Racing game"></canvas>
+  <div class="controls"><button class="blank">.</button><button id="upBtn">▲</button><button class="blank">.</button><button id="leftBtn">◀</button><button id="downBtn">▼</button><button id="rightBtn">▶</button></div>
+  <div class="small">Phone: hold the buttons. Keyboard: arrows or W/A/S/D. First to 3 laps wins.</div>
+</div>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script>
+const c=document.getElementById('game'),x=c.getContext('2d'),statusEl=document.getElementById('status'),scoreEl=document.getElementById('score'),codeBox=document.getElementById('codeBox');
+const W=c.width,H=c.height,keys={up:false,down:false,left:false,right:false};let mode='idle',peer=null,conn=null,raceStarted=false,lastSend=0,lastFrame=performance.now(),countdownUntil=0,winner='';let me=makeCar(205,400,-Math.PI/2),rival=makeCar(255,400,-Math.PI/2);
+function makeCar(px,py,a){return{x:px,y:py,a,v:0,laps:0,lastGate:false,trail:[],wp:0}}
+function resetRace(){me=makeCar(205,400,-Math.PI/2);rival=makeCar(255,400,-Math.PI/2);winner='';score();raceStarted=false;countdownUntil=performance.now()+3000}
+function score(){scoreEl.textContent=`YOU ${me.laps} laps | RIVAL ${rival.laps} laps`}
+function trackPath(){x.beginPath();x.moveTo(150,420);x.lineTo(150,160);x.quadraticCurveTo(150,70,250,70);x.lineTo(560,70);x.quadraticCurveTo(665,70,665,175);x.lineTo(665,330);x.quadraticCurveTo(665,430,555,430);x.lineTo(150,430)}
+function drawTrack(){x.fillStyle='#1f1f1f';x.fillRect(0,0,W,H);x.lineCap='round';x.strokeStyle='#606060';x.lineWidth=150;trackPath();x.stroke();x.strokeStyle='#d7d7d7';x.lineWidth=4;x.setLineDash([18,16]);trackPath();x.stroke();x.setLineDash([]);for(let i=0;i<8;i++)for(let j=0;j<2;j++){x.fillStyle=(i+j)%2?'#111':'#eee';x.fillRect(175+i*12,385+j*12,12,12)}x.fillStyle='#aaa';x.font='16px Arial';x.fillText('START / FINISH',175,378)}
+function drawCar(car,shade){car.trail.push([car.x,car.y]);if(car.trail.length>18)car.trail.shift();x.strokeStyle='#ffffff28';x.lineWidth=3;x.beginPath();car.trail.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.stroke();x.save();x.translate(car.x,car.y);x.rotate(car.a);x.fillStyle=shade;x.fillRect(-11,-18,22,36);x.fillStyle='#111';x.fillRect(-8,-13,16,9);x.fillStyle='#eee';x.fillRect(-8,8,16,4);x.restore()}
+function isRoad(px,py){const segs=[[150,420,150,160],[150,160,250,70],[250,70,560,70],[560,70,665,175],[665,175,665,330],[665,330,555,430],[555,430,150,430]];let best=1e9;for(const s of segs){const [x1,y1,x2,y2]=s,dx=x2-x1,dy=y2-y1,t=Math.max(0,Math.min(1,((px-x1)*dx+(py-y1)*dy)/(dx*dx+dy*dy))),qx=x1+t*dx,qy=y1+t*dy;best=Math.min(best,Math.hypot(px-qx,py-qy))}return best<78}
+function updateCar(car,input,dt){if(!raceStarted||winner)return;const accel=.00042*dt,turn=.0035*dt;if(input.up)car.v+=accel;if(input.down)car.v-=accel*.7;car.v*=Math.pow(.985,dt/16.7);car.v=Math.max(-2.2,Math.min(5.5,car.v));const steer=(input.left?-1:0)+(input.right?1:0);car.a+=steer*turn*(.5+Math.min(1,Math.abs(car.v)/3))*(car.v>=0?1:-1);const nx=car.x+Math.sin(car.a)*car.v*dt/8.5,ny=car.y-Math.cos(car.a)*car.v*dt/8.5;if(isRoad(nx,ny)){car.x=nx;car.y=ny}else car.v*=-.25;const gate=car.x>170&&car.x<285&&car.y>385&&car.y<420;if(gate&&!car.lastGate&&car.v>0&&Math.cos(car.a)>.25){car.laps++;score();if(car===me&&me.laps>=3){winner='YOU';statusEl.textContent='YOU WIN. Civilization remains technically possible.'}if(car===rival&&rival.laps>=3){winner='RIVAL';statusEl.textContent='RIVAL WINS. Administrative disappointment.'}}car.lastGate=gate}
+function aiInput(){const pts=[[150,150],[250,85],[560,85],[645,175],[645,325],[550,415],[170,415]],target=pts[rival.wp];let dx=target[0]-rival.x,dy=target[1]-rival.y;if(Math.hypot(dx,dy)<55){rival.wp=(rival.wp+1)%pts.length;dx=pts[rival.wp][0]-rival.x;dy=pts[rival.wp][1]-rival.y}const desired=Math.atan2(dx,-dy),diff=((desired-rival.a+Math.PI*3)%(Math.PI*2))-Math.PI;return{up:true,down:false,left:diff<-.08,right:diff>.08}}
+function draw(){drawTrack();drawCar(me,'#f1f1f1');drawCar(rival,'#9f9f9f');if(!raceStarted&&!winner&&countdownUntil){const left=countdownUntil-performance.now(),n=Math.ceil(left/1000);x.fillStyle='#fff';x.font='bold 76px Arial';x.textAlign='center';x.fillText(left>0?n:'GO',W/2,H/2);x.textAlign='left';if(left<=-500){raceStarted=true;countdownUntil=0;statusEl.textContent=mode==='online'?'Race live. Try not to disgrace the species.':'Practice race live.'}}if(winner){x.fillStyle='#fff';x.font='bold 54px Arial';x.textAlign='center';x.fillText(winner+' WINS',W/2,H/2);x.textAlign='left'}}
+function loop(t){const dt=Math.min(35,t-lastFrame||16.7);lastFrame=t;updateCar(me,keys,dt);if(mode==='practice')updateCar(rival,aiInput(),dt);if(mode==='online'&&conn&&conn.open&&t-lastSend>50){conn.send({type:'state',x:me.x,y:me.y,a:me.a,v:me.v,laps:me.laps,winner});lastSend=t}draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+function bindHold(id,key){const b=document.getElementById(id),on=e=>{e.preventDefault();keys[key]=true},off=e=>{e.preventDefault();keys[key]=false};['pointerdown','touchstart'].forEach(ev=>b.addEventListener(ev,on,{passive:false}));['pointerup','pointercancel','pointerleave','touchend'].forEach(ev=>b.addEventListener(ev,off,{passive:false}))}bindHold('upBtn','up');bindHold('downBtn','down');bindHold('leftBtn','left');bindHold('rightBtn','right');addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','w'].includes(k))keys.up=true;if(['arrowdown','s'].includes(k))keys.down=true;if(['arrowleft','a'].includes(k))keys.left=true;if(['arrowright','d'].includes(k))keys.right=true;if(k.startsWith('arrow'))e.preventDefault()});addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(['arrowup','w'].includes(k))keys.up=false;if(['arrowdown','s'].includes(k))keys.down=false;if(['arrowleft','a'].includes(k))keys.left=false;if(['arrowright','d'].includes(k))keys.right=false});
+document.getElementById('practiceBtn').onclick=()=>{cleanupPeer();mode='practice';statusEl.textContent='Practice mode. Rival is a small amount of JavaScript.';codeBox.textContent='';resetRace()};
+function cleanupPeer(){try{if(conn)conn.close();if(peer)peer.destroy()}catch(e){}conn=null;peer=null}
+function setupConn(connection){conn=connection;conn.on('open',()=>{mode='online';statusEl.textContent='Opponent connected. Starting race.';conn.send({type:'hello'});resetRace()});conn.on('data',d=>{if(!d)return;if(d.type==='state'){rival.x=d.x;rival.y=d.y;rival.a=d.a;rival.v=d.v;rival.laps=d.laps||0;if(d.winner&&!winner){winner='RIVAL';statusEl.textContent='RIVAL WINS. The internet has spoken.'}score()}});conn.on('close',()=>{statusEl.textContent='Opponent disconnected.';raceStarted=false});conn.on('error',()=>{statusEl.textContent='Connection error. The future remains unevenly distributed.'})}
+document.getElementById('hostBtn').onclick=()=>{cleanupPeer();mode='online';statusEl.textContent='Creating race code...';peer=new Peer();peer.on('open',id=>{codeBox.innerHTML=`Race code: <code>${id}</code><br>Send this code to the other player.`;statusEl.textContent='Waiting for opponent...'});peer.on('connection',c=>setupConn(c));peer.on('error',e=>statusEl.textContent='Could not create online race: '+e.type)};
+document.getElementById('joinBtn').onclick=()=>{const id=document.getElementById('joinCode').value.trim();if(!id){statusEl.textContent="Enter the host's race code first.";return}cleanupPeer();mode='online';statusEl.textContent='Connecting...';peer=new Peer();peer.on('open',()=>setupConn(peer.connect(id,{reliable:false})));peer.on('error',e=>statusEl.textContent='Could not join race: '+e.type)};
+</script>
+</body>
+</html>
