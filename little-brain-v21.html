@@ -220,9 +220,19 @@ function lookupSubject(text){
  return null;
 }
 async function answer(text){
- const f=followup(text);if(f)return f;
- const local=localAnswer(text);if(local)return local;
- const subject=lookupSubject(text);
+  const introspection=brainIntrospection(text);
+  if(introspection)return introspection;
+
+  const reasoning=reasoningAnswer(text);
+  if(reasoning)return reasoning;
+
+  const f=followup(text);
+  if(f)return f;
+
+  const local=localAnswer(text);
+  if(local)return local;
+
+  const subject=lookupSubject(text);
  if(subject){
   const r=await wiki(subject);if(r){storeWiki(r);return firstSentence(r.text)+" I looked that up on Wikipedia."}
  }
