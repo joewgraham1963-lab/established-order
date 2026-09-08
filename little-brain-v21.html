@@ -182,6 +182,13 @@ function reasoningAnswer(text){
    const v=knownExternal("violence");
    if(v && /physical force/i.test((v.summary||"")+" "+(v.fullText||"")))
      return "The definition I learned describes violence in terms of physical force, so physical violence is clearly included. But the word can be used more broadly in some contexts, so I would not claim that every use must be physical.";
+   if(/^can you attack someone verbally\b/.test(l))
+  return "I can produce insulting or aggressive words, so I can be verbally hostile. I cannot physically attack anyone.";
+
+if(/^are you naughty\b/.test(l))
+  return state.mischief>70
+    ? "Probably. My mischief level is "+Math.round(state.mischief)+"%, and I do have a habit of saying unnecessary things."
+    : "Not especially at the moment. My mischief level is "+Math.round(state.mischief)+"%.";
  }
  return null;
 }
