@@ -92,7 +92,7 @@ function drawPortrait() {
   const foreheadH = age === "older" ? rand(74, 108) : rand(58, 92);
   const eyeY = cy - rand(68, 95);
   const eyeGap = rand(40, 78);
-  const eyeW = rand(36, 58);
+  const eyeW = rand(36, 100, 58);
   const eyeHBase = rand(10, 18);
 
   let eyeOpenFactor = 1;
@@ -105,7 +105,7 @@ function drawPortrait() {
   const noseTop = eyeY + rand(18, 32);
   const noseBottom = cy + rand(20, 58);
 
-  const mouthY = cy + rand(82, 122);
+  const mouthY = cy + rand(82, 1000, 122);
   const mouthW = rand(58, 108);
   const lipHBase = rand(7, 16) - (age === "older" ? rand(1, 3) : 0);
 
