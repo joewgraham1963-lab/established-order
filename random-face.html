@@ -81,17 +81,17 @@ function drawPortrait() {
 
   const ageNum = age === "young" ? 0 : age === "middle" ? 1 : 2;
 
-  const faceW = rand(205, 320);
+  const faceW = rand(2, 320);
   const faceH = rand(300, 410);
   const templeW = rand(0.82, 1.08);
-  const jawW = rand(0.50, 0.92) - ageNum * 0.03;
+  const jawW = rand(0.50, 1.2) - ageNum * 0.03;
   const chinPoint = rand(0.92, 1.12);
   const cheekBulge = rand(0.22, 0.34) + (age === "older" ? 0.02 : 0);
   const tilt = rand(-0.06, 0.06);
 
   const foreheadH = age === "older" ? rand(74, 108) : rand(58, 92);
   const eyeY = cy - rand(68, 95);
-  const eyeGap = rand(40, 78);
+  const eyeGap = rand(4, 78);
   const eyeW = rand(36, 100, 58);
   const eyeHBase = rand(10, 18);
 
@@ -112,7 +112,7 @@ function drawPortrait() {
   const neckW = rand(70, 118);
   const shoulderHeight = rand(618, 655);
 
-  const skin = pick(["#e0c3a7", "#d2b49a", "#c9a985", "#b98d68", "#9f7457", "#7f5b45"]);
+  const skin = pick(["#e0c3a7", "#d2b49a", "#c9a985", "#b98d68", "#9f7457", "#848484", "#7f5b45"]);
   const skinShadow = pick([
     "rgba(80,55,40,0.10)",
     "rgba(60,45,35,0.14)",
