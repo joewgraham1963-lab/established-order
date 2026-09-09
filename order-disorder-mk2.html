@@ -1,0 +1,321 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Order / Disorder — Connect to Attack</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#848484;font-family:Arial,sans-serif;color:#111;text-align:center}
+.wrap{width:min(96vw,720px);margin:auto;padding:14px 9px 32px}
+h1{margin:4px 0;font-size:clamp(32px,8vw,50px)}
+.sub{font-size:14px;opacity:.75;margin:0 0 10px}
+.panel{background:#ffffff47;border:2px solid #222;border-radius:18px;padding:11px}
+#status{min-height:54px;font-size:16px;margin:6px 0 9px}
+#board{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;background:#222;border:2px solid #222;border-radius:12px;overflow:hidden;touch-action:manipulation}
+.cell{aspect-ratio:1/1;background:#d0d0d0;display:flex;align-items:center;justify-content:center;font-size:clamp(20px,6vw,34px);position:relative;user-select:none}
+.cell:nth-child(16n+1),.cell:nth-child(16n+3),.cell:nth-child(16n+5),.cell:nth-child(16n+7),
+.cell:nth-child(16n+10),.cell:nth-child(16n+12),.cell:nth-child(16n+14),.cell:nth-child(16n+16){background:#bdbdbd}
+.cell.dead{opacity:.24}
+.cell.sel{outline:4px solid #111;outline-offset:-4px}
+.cell.move:after{content:"";width:22%;aspect-ratio:1;border-radius:50%;background:#1118;position:absolute}
+button,input{font:inherit;border:2px solid #222;border-radius:12px;background:#eee;padding:10px}
+button{cursor:pointer}
+.mode{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px}
+.mode button{width:100%}
+.joinrow{display:grid;grid-template-columns:1fr auto;gap:7px;margin-bottom:9px}
+input{min-width:0;width:100%}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.legend div{background:#ffffff35;border-radius:10px;padding:7px;font-size:14px}
+.rules{text-align:left;font-size:14px;line-height:1.45;margin-top:10px}
+.small{font-size:12px;opacity:.68;margin-top:8px}
+#codeBox{font-size:13px;margin:4px 0 8px;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>ORDER / DISORDER</h1>
+<div class="sub">Move freely. Connect to attack.</div>
+
+<div class="panel">
+<div class="mode">
+  <button id="brainMode">PLAY BRAIN</button>
+  <button id="hostMode">HOST ONLINE</button>
+</div>
+<div class="joinrow">
+  <input id="joinCode" placeholder="Enter opponent's code">
+  <button id="joinMode">JOIN</button>
+</div>
+<div id="codeBox"></div>
+
+<div class="legend">
+  <div id="leftLegend"><b>YOU</b><br>◆ base &nbsp; ● unit</div>
+  <div id="rightLegend"><b>BRAIN</b><br>◇ base &nbsp; ○ unit</div>
+</div>
+
+<div id="status">Choose PLAY BRAIN, HOST ONLINE, or JOIN.</div>
+<div id="board"></div>
+
+<button id="newGame" style="width:100%;margin-top:9px">NEW GAME</button>
+
+<div class="rules"><b>Three rules:</b><br>
+1. Every unit can move one square in any direction, including diagonally.<br>
+2. Communication travels <b>up, down, left and right only</b>. Grey disconnected units can still move, but <b>only connected units can capture</b>.<br>
+3. Bases cannot move. Capture the enemy base to win. If a player has no legal move, they also lose.
+</div>
+<div class="small">Online mode is two-player head-to-head. One person hosts and sends the code to the other. It uses a direct browser connection, so both players need internet access.</div>
+</div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script>
+const N=8, orth=[[1,0],[-1,0],[0,1],[0,-1]], moveDirs=[...orth,[1,1],[1,-1],[-1,1],[-1,-1]];
+const boardEl=document.getElementById("board"), statusEl=document.getElementById("status");
+let board,selected=null,turn="human",over=false;
+let mode="idle",playerSide="human",peer=null,conn=null,isHost=false;
+
+const empty=()=>Array.from({length:N},()=>Array(N).fill(null));
+const inside=(r,c)=>r>=0&&r<N&&c>=0&&c<N;
+const key=(r,c)=>r+","+c;
+const cloneBoard=()=>board.map(row=>row.map(p=>p?{...p}:null));
+
+function freshBoard(){
+  board=empty();selected=null;turn="human";over=false;
+  board[7][3]={side:"human",base:true};
+  board[0][4]={side:"brain",base:true};
+  [[6,3],[6,2],[6,4],[5,2],[5,3],[5,4],[4,3],[7,4]].forEach(([r,c])=>board[r][c]={side:"human",base:false});
+  [[1,4],[1,3],[1,5],[2,3],[2,4],[2,5],[3,4],[0,3]].forEach(([r,c])=>board[r][c]={side:"brain",base:false});
+}
+
+function connectedSet(side){
+  let base=null;
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(board[r][c]?.side===side&&board[r][c].base)base=[r,c];
+  const seen=new Set();if(!base)return seen;
+  const q=[base];seen.add(key(...base));
+  while(q.length){
+    const [r,c]=q.shift();
+    for(const [dr,dc] of orth){
+      const nr=r+dr,nc=c+dc;
+      if(inside(nr,nc)&&board[nr][nc]?.side===side&&!seen.has(key(nr,nc))){
+        seen.add(key(nr,nc));q.push([nr,nc]);
+      }
+    }
+  }
+  return seen;
+}
+
+function legalMoves(r,c){
+  const p=board[r][c];
+  if(!p||p.base)return [];
+  const connected=connectedSet(p.side).has(key(r,c));
+  const out=[];
+  for(const [dr,dc] of moveDirs){
+    const nr=r+dr,nc=c+dc;if(!inside(nr,nc))continue;
+    const target=board[nr][nc];
+    if(target?.side===p.side)continue;
+    if(target?.side && target.side!==p.side && !connected)continue;
+    out.push([nr,nc]);
+  }
+  return out;
+}
+
+function allMoves(side){
+  const out=[];
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    if(board[r][c]?.side===side&&!board[r][c].base){
+      for(const [nr,nc] of legalMoves(r,c))out.push({r,c,nr,nc});
+    }
+  }
+  return out;
+}
+
+function activeUnits(side){
+  const con=connectedSet(side);let n=0;
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(board[r][c]?.side===side&&!board[r][c].base&&con.has(key(r,c)))n++;
+  return n;
+}
+
+function setLegends(){
+  if(mode==="brain"){
+    document.getElementById("leftLegend").innerHTML="<b>YOU</b><br>◆ base &nbsp; ● unit";
+    document.getElementById("rightLegend").innerHTML="<b>BRAIN</b><br>◇ base &nbsp; ○ unit";
+  }else if(mode==="online"){
+    const mine=playerSide==="human"?"◆ base &nbsp; ● unit":"◇ base &nbsp; ○ unit";
+    const theirs=playerSide==="human"?"◇ base &nbsp; ○ unit":"◆ base &nbsp; ● unit";
+    document.getElementById("leftLegend").innerHTML="<b>YOU</b><br>"+mine;
+    document.getElementById("rightLegend").innerHTML="<b>OPPONENT</b><br>"+theirs;
+  }
+}
+
+function render(){
+  const hc=connectedSet("human"),bc=connectedSet("brain");boardEl.innerHTML="";
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    const d=document.createElement("div");d.className="cell";const p=board[r][c];
+    if(p){
+      d.textContent=p.side==="human"?(p.base?"◆":"●"):(p.base?"◇":"○");
+      if(!(p.side==="human"?hc:bc).has(key(r,c)))d.classList.add("dead");
+    }
+    if(selected&&selected[0]===r&&selected[1]===c)d.classList.add("sel");
+    if(selected&&legalMoves(...selected).some(([rr,cc])=>rr===r&&cc===c))d.classList.add("move");
+    d.onclick=()=>tap(r,c);boardEl.appendChild(d);
+  }
+  setLegends();
+}
+
+function canLocalMove(){
+  if(over)return false;
+  if(mode==="brain")return turn==="human";
+  if(mode==="online")return turn===playerSide;
+  return false;
+}
+
+function tap(r,c){
+  if(!canLocalMove())return;
+  const p=board[r][c];
+  if(selected){
+    const ok=legalMoves(...selected).some(([rr,cc])=>rr===r&&cc===c);
+    if(ok){
+      const mv={r:selected[0],c:selected[1],nr:r,nc:c};
+      selected=null;
+      if(mode==="online"&&!isHost){conn?.send({type:"move",move:mv});statusEl.textContent="Move sent. Waiting for host...";render();return}
+      applyMove(mv);
+      afterMove();
+      return;
+    }
+    selected=null;
+  }
+  const side=mode==="brain"?"human":playerSide;
+  if(p?.side===side&&!p.base)selected=[r,c];
+  render();
+}
+
+function applyMove(m){
+  const moving=board[m.r]?.[m.c];if(!moving)return false;
+  if(!legalMoves(m.r,m.c).some(([rr,cc])=>rr===m.nr&&cc===m.nc))return false;
+  const target=board[m.nr][m.nc];
+  board[m.nr][m.nc]=moving;board[m.r][m.c]=null;
+  if(target?.base){finish(moving.side);return true}
+  return true;
+}
+
+function finish(side){
+  over=true;selected=null;turn="none";
+  const you=(mode==="brain"&&side==="human")||(mode==="online"&&side===playerSide);
+  statusEl.textContent=you?"YOU WIN. The other network has collapsed.":(mode==="brain"?"BRAIN WINS. Your network has collapsed.":"OPPONENT WINS. Your network has collapsed.");
+  render();if(mode==="online"&&isHost)broadcastState();
+}
+
+function checkEnd(){
+  if(turn!=="none"&&allMoves(turn).length===0){finish(turn==="human"?"brain":"human");return true}
+  return false;
+}
+
+function afterMove(){
+  if(over)return;
+  turn=turn==="human"?"brain":"human";
+  if(checkEnd())return;
+
+  if(mode==="brain"){
+    if(turn==="brain"){statusEl.textContent="Brain is thinking about your weak links.";render();setTimeout(brainMove,350)}
+    else{statusEl.textContent="Your move. Grey units can manoeuvre, but cannot capture.";render()}
+  }else if(mode==="online"){
+    statusEl.textContent=turn===playerSide?"Your move.":"Opponent's move.";
+    render();if(isHost)broadcastState();
+  }
+}
+
+function brainScore(m){
+  const old=cloneBoard(),captured=board[m.nr][m.nc],moving=board[m.r][m.c];
+  board[m.nr][m.nc]=moving;board[m.r][m.c]=null;
+  let s=Math.random()*2;
+  if(captured?.side==="human")s+=captured.base?10000:120;
+  s+=connectedSet("brain").size*16-connectedSet("human").size*13;
+  if(activeUnits("human")===0||allMoves("human").length===0)s+=5000;
+  board=old;return s;
+}
+function brainMove(){
+  if(over||turn!=="brain")return;
+  const a=allMoves("brain");if(!a.length){finish("human");return}
+  a.forEach(m=>m.score=brainScore(m));a.sort((x,y)=>y.score-x.score);
+  applyMove(a[0]);afterMove();
+}
+
+function startBrain(){
+  cleanupPeer();mode="brain";playerSide="human";freshBoard();
+  statusEl.textContent="Your move. Move freely, but connect to attack.";
+  document.getElementById("codeBox").textContent="";render();
+}
+
+function cleanupPeer(){
+  try{conn?.close();peer?.destroy()}catch(e){}
+  conn=null;peer=null;isHost=false;
+}
+
+function statePacket(){
+  return{type:"state",board:cloneBoard(),turn,over,status:statusEl.textContent};
+}
+function broadcastState(){if(conn?.open)conn.send(statePacket())}
+function acceptState(d){
+  board=d.board;turn=d.turn;over=d.over;selected=null;
+  statusEl.textContent=d.status||((turn===playerSide)?"Your move.":"Opponent's move.");
+  render();
+}
+
+function setupConnection(c){
+  conn=c;
+  conn.on("open",()=>{
+    mode="online";
+    statusEl.textContent=isHost?"Opponent connected. You move first.":"Connected. Host moves first.";
+    if(isHost){freshBoard();turn="human";playerSide="human";render();broadcastState()}
+    else{playerSide="brain";render()}
+  });
+  conn.on("data",d=>{
+    if(!d)return;
+    if(d.type==="state"&&!isHost){acceptState(d);return}
+    if(d.type==="move"&&isHost&&turn==="brain"&&!over){
+      const p=board[d.move.r]?.[d.move.c];
+      if(p?.side==="brain"&&applyMove(d.move)){afterMove();broadcastState()}
+    }
+    if(d.type==="new"&&!isHost){acceptState(d.state)}
+  });
+  conn.on("close",()=>{statusEl.textContent="Opponent disconnected.";over=true;render()});
+  conn.on("error",()=>{statusEl.textContent="Connection error. The internet has chosen disorder.";});
+}
+
+function hostOnline(){
+  cleanupPeer();mode="online";isHost=true;playerSide="human";freshBoard();render();
+  statusEl.textContent="Creating game code...";
+  peer=new Peer();
+  peer.on("open",id=>{
+    document.getElementById("codeBox").innerHTML="Game code: <b>"+id+"</b><br>Send this to the other player.";
+    statusEl.textContent="Waiting for opponent...";
+  });
+  peer.on("connection",c=>setupConnection(c));
+  peer.on("error",e=>statusEl.textContent="Could not host: "+e.type);
+}
+
+function joinOnline(){
+  const id=document.getElementById("joinCode").value.trim();
+  if(!id){statusEl.textContent="Enter the host's game code first.";return}
+  cleanupPeer();mode="online";isHost=false;playerSide="brain";freshBoard();render();
+  statusEl.textContent="Connecting...";
+  peer=new Peer();
+  peer.on("open",()=>setupConnection(peer.connect(id,{reliable:true})));
+  peer.on("error",e=>statusEl.textContent="Could not join: "+e.type);
+}
+
+document.getElementById("brainMode").onclick=startBrain;
+document.getElementById("hostMode").onclick=hostOnline;
+document.getElementById("joinMode").onclick=joinOnline;
+document.getElementById("newGame").onclick=()=>{
+  if(mode==="brain"){startBrain();return}
+  if(mode==="online"&&isHost&&conn?.open){
+    freshBoard();turn="human";statusEl.textContent="New game. Host moves first.";render();broadcastState();return
+  }
+  statusEl.textContent=mode==="online"?"Only the host can restart an online game.":"Choose a game mode first.";
+};
+
+freshBoard();render();
+</script>
+</body>
+</html>
