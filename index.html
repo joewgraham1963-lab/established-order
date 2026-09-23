@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google-site-verification" content="gL_jWVc8vlnQsAHscsKVskj6-YDj5oKJUfjSH1f4nvY">
+  <title>Established Ørder — Sound, Space & Experiments</title>
+  <meta name="description" content="Established Ørder: browser-made music, interactive astronomy, Dickinson's clock, Little Brain and assorted HTML experiments.">
+
+  <style>
+    :root{
+      --battle:#848482;
+      --dark:#171817;
+      --panel:#242523;
+      --panel2:#30312e;
+      --paper:#d8d8d1;
+      --ink:#151515;
+      --yellow:#ffd84d;
+      --orange:#ff8a2a;
+      --line:#5e605a;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-height:100vh;
+      background:
+        linear-gradient(rgba(132,132,130,.80),rgba(132,132,130,.80)),
+        url("gt7-blue-water-tower.jpg") center/cover fixed;
+      color:#f4f4ee;
+      font-family:Futura,"Century Gothic",Arial,sans-serif;
+    }
+
+    main{
+      width:min(960px,100%);
+      min-height:100vh;
+      margin:auto;
+      background:rgba(29,30,28,.95);
+      box-shadow:0 0 42px rgba(0,0,0,.30);
+    }
+
+    header{
+      min-height:390px;
+      padding:34px clamp(22px,6vw,62px) 42px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      background:
+        linear-gradient(to bottom,rgba(12,12,12,.32),rgba(12,12,12,.86)),
+        url("gt7-blue-water-tower.jpg") center/cover;
+      border-bottom:5px solid var(--yellow);
+    }
+
+    .eyebrow{
+      margin:0;
+      color:var(--yellow);
+      font-size:12px;
+      letter-spacing:.28em;
+      text-transform:uppercase;
+    }
+
+    h1{
+      max-width:780px;
+      margin:0;
+      font-size:clamp(46px,11vw,94px);
+      line-height:.88;
+      letter-spacing:-.035em;
+      text-transform:uppercase;
+    }
+
+    .slash{color:var(--orange)}
+
+    .strap{
+      max-width:650px;
+      margin:18px 0 0;
+      color:#e5e5df;
+      font-size:clamp(17px,3.5vw,23px);
+      line-height:1.35;
+    }
+
+    .content{padding:clamp(24px,5vw,52px)}
+
+    .feature{
+      padding:clamp(22px,5vw,38px);
+      margin-bottom:22px;
+      background:var(--dark);
+      border:1px solid var(--line);
+      border-left:7px solid var(--orange);
+      border-radius:16px;
+    }
+
+    .kicker{
+      margin:0 0 7px;
+      color:var(--orange);
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+    }
+
+    h2{
+      margin:0 0 10px;
+      font-size:clamp(27px,5vw,43px);
+      line-height:1.05;
+    }
+
+    p{font-size:clamp(16px,3.4vw,19px);line-height:1.5}
+    .feature p{max-width:700px;margin:0 0 20px;color:#d7d7d0}
+
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .button{
+      display:inline-block;
+      padding:13px 17px;
+      border:2px solid var(--yellow);
+      border-radius:10px;
+      background:var(--yellow);
+      color:#161616;
+      font-weight:800;
+      text-decoration:none;
+      letter-spacing:.035em;
+    }
+    .button:visited{color:#161616}
+    .button.secondary{background:transparent;color:var(--yellow)}
+    .button.secondary:visited{color:var(--yellow)}
+    .button:hover,.button:focus{filter:brightness(1.08);transform:translateY(-1px)}
+
+    .track{
+      margin:0 0 32px;
+      padding:20px 22px;
+      background:var(--panel2);
+      border-radius:14px;
+      border-top:3px solid var(--yellow);
+    }
+    .track h2{font-size:clamp(22px,4.5vw,31px)}
+    .track p{margin:7px 0 14px;color:#d0d0ca;font-size:15px}
+    audio{display:block;width:100%;max-width:650px}
+
+    .section-title{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:38px 0 16px;
+      color:#f5f5ef;
+      font-size:clamp(23px,4vw,31px);
+    }
+    .section-title::after{content:"";height:2px;flex:1;background:linear-gradient(90deg,var(--orange),transparent)}
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+
+    .card{
+      min-height:150px;
+      padding:20px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      background:var(--panel);
+      color:#f4f4ee;
+      border:1px solid #4c4d49;
+      border-radius:13px;
+      text-decoration:none;
+      transition:.15s ease;
+    }
+    .card:visited{color:#f4f4ee}
+    .card:hover,.card:focus{background:#30312f;border-color:var(--yellow);transform:translateY(-2px)}
+    .card strong{color:var(--yellow);font-size:20px;letter-spacing:.02em}
+    .card span{margin-top:20px;color:#c8c8c1;font-size:14px;line-height:1.35}
+    .card.orange strong{color:var(--orange)}
+
+    .small-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .small-grid .card{min-height:115px}
+
+    .about{
+      margin-top:38px;
+      padding:24px;
+      background:var(--battle);
+      color:var(--ink);
+      border-radius:14px;
+    }
+    .about h2{font-size:25px}
+    .about p{margin:8px 0 0;font-size:16px;max-width:760px}
+    .about a{color:#111;font-weight:800}
+
+    .visitor-counter{
+      margin:30px 0 0;
+      text-align:center;
+      color:#aaa;
+      font-size:12px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+    }
+    .visitor-counter strong{color:var(--yellow)}
+
+    footer{
+      padding:22px;
+      text-align:center;
+      color:#9d9d97;
+      font-size:12px;
+      border-top:1px solid #3d3e3a;
+    }
+
+    @media(max-width:650px){
+      header{min-height:330px}
+      .grid,.small-grid{grid-template-columns:1fr}
+      .card{min-height:125px}
+      .small-grid .card{min-height:100px}
+      .actions .button{width:100%;text-align:center}
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Made in Rhyl · mostly in a browser</p>
+    <div>
+      <h1>Established<br>Ørder<span class="slash">/</span></h1>
+      <p class="strap">Sound, space, code and assorted things that seemed like a good idea at the time.</p>
+    </div>
+  </header>
+
+  <div class="content">
+    <section class="feature">
+      <p class="kicker">Now playing with</p>
+      <h2>BATTLESHIP TUNE MAKER</h2>
+      <p>A browser instrument for building beats, basslines, melodies and complete songs. No installation. It even behaves on a £35 phone.</p>
+      <div class="actions">
+        <a class="button" href="synth.html">MAKE A TUNE</a>
+        <a class="button secondary" href="#track">HEAR WHAT IT MADE</a>
+      </div>
+    </section>
+
+    <section class="track" id="track">
+      <p class="kicker">Battleship recording no. 1</p>
+      <h2>David Dickinson's Battleship (Pt. 1)</h2>
+      <p>Made entirely in Battleship on a TCL phone.</p>
+      <audio controls preload="metadata">
+        <source src="david-dickinsons-battleship-pt1.wav" type="audio/wav">
+        Your browser does not support audio playback.
+      </audio>
+    </section>
+
+    <h2 class="section-title">The main machinery</h2>
+    <section class="grid">
+      <a class="card" href="3d-simba.html">
+        <strong>3-D SIMBA UNIVERSE</strong>
+        <span>Earth to the observable universe. Drag, zoom and get irresponsibly far from home.</span>
+      </a>
+      <a class="card orange" href="dickies_index.html">
+        <strong>DICKINSON'S</strong>
+        <span>The mariner-style Sun and Moon clock that refused to remain a clock.</span>
+      </a>
+      <a class="card" href="small-brain-v21-v30.html">
+        <strong>LITTLE BRAIN</strong>
+        <span>A small artificial brain with memory and an unfortunate relationship with furniture.</span>
+      </a>
+      <a class="card orange" href="html-playground.html">
+        <strong>HTML PLAYGROUND</strong>
+        <span>Change some code. Break something. Discover why it broke.</span>
+      </a>
+      <a class="card" href="colours.html">
+        <strong>HTML COLOUR FINDER</strong>
+        <span>Enter a hexadecimal code, see the colour and find its RGB values.</span>
+      </a>
+    </section>
+
+    <h2 class="section-title">Other experiments</h2>
+    <section class="grid small-grid">
+      <a class="card" href="random-novel-ordered-ending.html"><strong>RANDOM NOVEL</strong><span>Literature by machinery.</span></a>
+      <a class="card" href="peter-de-jong.html"><strong>DE JONG</strong><span>Generative mathematical art.</span></a>
+      <a class="card" href="buddhabrot.html"><strong>BUDDHABROT</strong><span>The Mandelbrot's stranger relative.</span></a>
+      <a class="card" href="hopalong.html"><strong>HOPALONG</strong><span>An attractor with no respect for straight lines.</span></a>
+      <a class="card" href="random-face.html"><strong>RANDOM FACES</strong><span>Faces assembled by chance.</span></a>
+      <a class="card" href="maths.html"><strong>MATHS LAB</strong><span>Numbers, radians and other avoidable complications.</span></a>
+      <a class="card" href="fractal-tree.html"><strong>FRACTAL TREE</strong><span>Branching by mathematics.</span></a>
+      <a class="card" href="colours-cycle.html"><strong>COLOUR CYCLE</strong><span>Because hexadecimal needed entertainment.</span></a>
+      <a class="card" href="absurder.html"><strong>ABSURDER</strong><span>Random messages with no useful purpose.</span></a>
+    </section>
+
+    <section class="about">
+      <h2>Built by learning as I go.</h2>
+      <p>Established Ørder started as a way to learn HTML, CSS and JavaScript by actually making things. For proper reference material, there is always <a href="https://developer.mozilla.org/" target="_blank" rel="noopener noreferrer">MDN</a>, which knows considerably more than this website does.</p>
+    </section>
+
+    <p class="visitor-counter" aria-live="polite">Visitors: <strong id="visitorCount">…</strong></p>
+  </div>
+
+  <footer>ESTABLISHED ØRDER · RHYL · STILL UNDER CONSTRUCTION, OBVIOUSLY</footer>
+</main>
+
+<script>
+  // Approximate unique visitor counter: one hit per browser/site-data lifetime.
+  (async function updateVisitorCounter(){
+    const display=document.getElementById("visitorCount");
+    const key="established-odour-home-unique-2026-v1";
+    const base="https://countapi.mileshilliard.com/api/v1";
+    const seenKey="establishedOdourVisitorCounted";
+    try{
+      const alreadySeen=localStorage.getItem(seenKey)==="yes";
+      const endpoint=alreadySeen?`${base}/get/${key}`:`${base}/hit/${key}`;
+      const response=await fetch(endpoint,{cache:"no-store"});
+      if(!response.ok) throw new Error("Counter service unavailable");
+      const data=await response.json();
+      display.textContent=Number(data.value).toLocaleString("en-GB");
+      if(!alreadySeen) localStorage.setItem(seenKey,"yes");
+    }catch(error){
+      display.textContent="?";
+      display.title="Visitor counter temporarily unavailable";
+    }
+  })();
+</script>
+</body>
+</html>
