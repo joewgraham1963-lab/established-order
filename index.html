@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#848482">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="google-site-verification" content="gL_jWVc8vlnQsAHscsKVskj6-YDj5oKJUfjSH1f4nvY">
   <title>Established Ørder — Sound, Space & Experiments</title>
   <meta name="description" content="Established Ørder: browser-made music, interactive astronomy, Dickinson's clock, Little Brain and assorted HTML experiments.">
@@ -324,6 +328,14 @@
       display.title="Visitor counter temporarily unavailable";
     }
   })();
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(console.error);
+    });
+  }
 </script>
 </body>
 </html>
